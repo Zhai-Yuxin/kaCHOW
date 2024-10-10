@@ -35,6 +35,9 @@ def create_pngs_from_wavs(input_path, output_path):
         output_file = os.path.join(output_path, file.replace('.wav', '.png'))
         create_spectrogram(input_file, output_file)
 
+# Labels
+classes = ('left','right','forward','reverse','stop') # 5 classes
+
 # CNN Model
 
 batch_size = 64
@@ -44,40 +47,43 @@ class CNNModel(nn.Module):
     def __init__(self, input_size):
         super(CNNModel, self).__init__()
         self.net = nn.Sequential(
-            nn.Conv2d(in_channels = input_size, out_channels = 32, kernel_size=(4, 4)),
+            nn.Conv2d(in_channels = input_size, out_channels = 32, kernel_size=(3, 3)), # 1st conv layer
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2)),
-            nn.Conv2d(in_channels=32, out_channels=128, kernel_size=(4, 4)),
+            nn.Conv2d(in_channels=32, out_channels=128, kernel_size=(3, 3)), # 2nd conv layer
             nn.ReLU(),
-            nn.Conv2d(in_channels=128, out_channels=64, kernel_size=(4, 4)),
+            nn.Conv2d(in_channels=128, out_channels=128, kernel_size=(3, 3)), # 3rd conv layer
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2)),
+            nn.Conv2d(in_channels=128, out_channels=128, kernel_size=(3, 3)), # 4th conv layer
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2)),
             torch.flatten(),
-            nn.Linear(in_features=576, out_features=32),
+            nn.Linear(in_features=576, out_features=1024),
             nn.ReLU(),
             nn.Dropout(0.1),
-            nn.Linear(in_features=32, out_features=10)
+            nn.Linear(in_features=1024, out_features=5)
         )
     def forward(self, x):
         return self.net(x)
     
-class SimpleNN(nn.Module):
-    def __init__(self, input_size):
-        super().__init__()
+# class SimpleNN(nn.Module):
+#     def __init__(self, input_size):
+#         super().__init__()
 
         
-    def forward(self, X):
-        probs = self.net(X)
-        return probs
+#     def forward(self, X):
+#         probs = self.net(X)
+#         return probs
 
 if __name__ == "__main__":
     # get data
     # split data
 
     model = CNNModel().to(device)
-    num_epochs = 10
+    num_epochs = 100
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.01)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
 
     # train model
     # test model
