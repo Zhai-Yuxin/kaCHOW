@@ -6,37 +6,34 @@ from torch.utils.data import TensorDataset, DataLoader
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 
-# Audio Data Pre-processing
-
-import librosa.display, os
-import matplotlib.pyplot as plt
-
-def create_spectrogram(audio_file, image_file):
-    fig = plt.figure()
-    ax = fig.add_subplot(1, 1, 1)
-    fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
-
-    y, sr = librosa.load(audio_file)
-    ms = librosa.feature.melspectrogram(y=y, sr=sr)
-    log_ms = librosa.power_to_db(ms, ref=np.max)
-    librosa.display.specshow(log_ms, sr=sr)
-
-    fig.savefig(image_file)
-    plt.close(fig)
-    
-def create_pngs_from_wavs(input_path, output_path):
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
-
-    dir = os.listdir(input_path)
-
-    for i, file in enumerate(dir):
-        input_file = os.path.join(input_path, file)
-        output_file = os.path.join(output_path, file.replace('.wav', '.png'))
-        create_spectrogram(input_file, output_file)
-
 # Labels
 classes = ('left','right','forward','reverse','stop') # 5 classes
+
+# Load Images
+def load_images_from_path(path, label):
+    images = []
+    labels = []
+
+    for file in os.listdir(path):
+        images.append(image.img_to_array(image.load_img(os.path.join(path, file), target_size=(224, 224, 3))))
+        labels.append((label))
+        
+    return images, labels
+
+def show_images(images):
+    fig, axes = plt.subplots(1, 8, figsize=(20, 20), subplot_kw={'xticks': [], 'yticks': []})
+
+    for i, ax in enumerate(axes.flat):
+        ax.imshow(images[i] / 255)
+        
+x = []
+y = []
+
+images, labels = load_images_from_path('Spectrograms/background', 0)
+show_images(images)
+    
+x += images
+y += labels
 
 # CNN Model
 
