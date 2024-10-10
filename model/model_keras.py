@@ -61,12 +61,21 @@ class CNNModel():
         model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
         return model
 
-hist = CNNModel.forward().fit(x_train_norm, y_train_encoded, validation_data=(x_test_norm, y_test_encoded), batch_size=10, epochs=10)
-
 # Test model on given sample
 
-from preprocessing import create_spectrogram, create_pngs_from_wavs
+from numpy import np
+from tensorflow.keras.applications import MobileNetV2
+from tensorflow.keras.applications.mobilenet import preprocess_input
 
-create_spectrogram('Sounds/samples/sample1.wav', 'Spectrograms/sample1.png')
+base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
 
 x = image.load_img('Spectrograms/sample1.png', target_size=(224, 224))
+x = image.img_to_array(x)
+x = np.expand_dims(x, axis=0)
+x = preprocess_input(x)
+
+y = base_model.predict(x)
+predictions = CNNModel.forward().fit(x_train_norm, y_train_encoded, validation_data=(x_test_norm, y_test_encoded), batch_size=10, epochs=10)
+
+for i, label in enumerate(classes):
+    print(f'{label}: {predictions[0][i]}')

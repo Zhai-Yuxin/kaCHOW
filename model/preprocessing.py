@@ -35,3 +35,5 @@ def create_pngs_from_wavs(input_path, output_path):
 
 for label in classes:
     create_pngs_from_wavs(f'Sounds/{label}', f'Spectrograms/{label}')
+
+create_pngs_from_wavs('Sounds/samples', 'Spectrograms/samples')
