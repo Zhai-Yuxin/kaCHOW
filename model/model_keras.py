@@ -61,11 +61,31 @@ class CNNModel():
         model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
         return model
 
+# Transfer learning
+
+from tensorflow.keras.applications import MobileNetV2
+from tensorflow.keras.applications.mobilenet import preprocess_input
+
+base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+
+x_train_norm = preprocess_input(np.array(x_train))
+x_test_norm = preprocess_input(np.array(x_test))
+
+train_features = base_model.predict(x_train_norm)
+test_features = base_model.predict(x_test_norm)
+
+class MLP():
+    def forward(self):
+        model = Sequential()
+        model.add(Flatten(input_shape=train_features.shape[1:]))
+        model.add(Dense(1024, activation='relu'))
+        model.add(Dense(4, activation='softmax'))
+        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+        return model
+    
 # Test model on given sample
 
 from numpy import np
-from tensorflow.keras.applications import MobileNetV2
-from tensorflow.keras.applications.mobilenet import preprocess_input
 
 base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
 
@@ -75,7 +95,12 @@ x = np.expand_dims(x, axis=0)
 x = preprocess_input(x)
 
 y = base_model.predict(x)
-predictions = CNNModel.forward().fit(x_train_norm, y_train_encoded, validation_data=(x_test_norm, y_test_encoded), batch_size=10, epochs=10)
+predictions = MLP.forward().fit(x_train_norm, y_train_encoded, validation_data=(x_test_norm, y_test_encoded), batch_size=10, epochs=10)
 
 for i, label in enumerate(classes):
     print(f'{label}: {predictions[0][i]}')
+
+
+for i, label in enumerate(classes):
+    if predictions([0][i]) == max(predictions([0])):
+        print(label)
