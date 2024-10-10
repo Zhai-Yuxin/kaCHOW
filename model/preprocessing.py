@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 # Audio Data Pre-processing
 
-classes = ('background', 'chainsaw', 'engine', 'storm') # 5 classes
+classes = ('backward', 'go', 'left', 'right', 'stop') # 5 classes
 
 def create_spectrogram(audio_file, image_file):
     fig = plt.figure()
