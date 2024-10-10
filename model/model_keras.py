@@ -1,9 +1,10 @@
 # Labels
-classes = ('left','right','forward','reverse','stop') # 5 classes
+classes = ('background', 'chainsaw', 'engine', 'storm') # 5 classes
 
 # Load Images
 
 from keras.preprocessing import image
+import os
 
 def load_images_from_path(path, label):
     images = []
@@ -27,6 +28,7 @@ for label in classes:
 
 # Train-test split
 
+import numpy as np
 from tensorflow.keras.utils import to_categorical
 from sklearn.model_selection import train_test_split
 
@@ -74,35 +76,28 @@ x_test_norm = preprocess_input(np.array(x_test))
 train_features = base_model.predict(x_train_norm)
 test_features = base_model.predict(x_test_norm)
 
-class MLP():
-    def forward(self):
-        model = Sequential()
-        model.add(Flatten(input_shape=train_features.shape[1:]))
-        model.add(Dense(1024, activation='relu'))
-        model.add(Dense(4, activation='softmax'))
-        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-        return model
+model = Sequential()
+model.add(Flatten(input_shape=train_features.shape[1:]))
+model.add(Dense(1024, activation='relu'))
+model.add(Dense(4, activation='softmax'))
+model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+model.fit(train_features, y_train_encoded, validation_data=(test_features, y_test_encoded), batch_size=10, epochs=10)
     
 # Test model on given sample
 
-from numpy import np
-
 base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
 
-x = image.load_img('Spectrograms/sample1.png', target_size=(224, 224))
+x = image.load_img('Spectrograms/samples/sample1.png', target_size=(224, 224))
 x = image.img_to_array(x)
 x = np.expand_dims(x, axis=0)
 x = preprocess_input(x)
 
 y = base_model.predict(x)
-predictions = MLP.forward() \
-.fit(x_train_norm, y_train_encoded, validation_data=(x_test_norm, y_test_encoded), batch_size=10, epochs=10) \
-.predict(y)
+predictions = model.predict(y)
 
 for i, label in enumerate(classes):
     print(f'{label}: {predictions[0][i]}')
 
-
 for i, label in enumerate(classes):
-    if predictions([0][i]) == max(predictions([0])):
+    if predictions[0][i] == max(predictions[0]):
         print(label)
