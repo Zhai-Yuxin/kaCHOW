@@ -95,7 +95,9 @@ x = np.expand_dims(x, axis=0)
 x = preprocess_input(x)
 
 y = base_model.predict(x)
-predictions = MLP.forward().fit(x_train_norm, y_train_encoded, validation_data=(x_test_norm, y_test_encoded), batch_size=10, epochs=10)
+predictions = MLP.forward() \
+.fit(x_train_norm, y_train_encoded, validation_data=(x_test_norm, y_test_encoded), batch_size=10, epochs=10) \
+.predict(y)
 
 for i, label in enumerate(classes):
     print(f'{label}: {predictions[0][i]}')
