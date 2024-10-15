@@ -74,7 +74,7 @@ class CNN():
 
 with tf.device('GPU/1'):
     model = CNN().forward()
-    hist = model.fit(x_train_norm, y_train_encoded, validation_data=(x_test_norm, y_test_encoded), batch_size=64, epochs=1)
+    hist = model.fit(x_train_norm, y_train_encoded, validation_data=(x_test_norm, y_test_encoded), batch_size=64, epochs=20)
 
 # Save model
 
