@@ -1,81 +1,87 @@
-# Labels
-
-classes = ('backward', 'go', 'left', 'right', 'stop') # 5 classes
-
-# Load Images
-
-from keras.preprocessing import image
 import os
-
-def load_images_from_path(path, label):
-    images = []
-    labels = []
-
-    for file in os.listdir(path):
-        images.append(image.img_to_array(image.load_img(os.path.join(path, file), target_size=(224, 224, 3))))
-        labels.append((label))
-        
-    return images, labels
-        
-x = []
-y = []
-index = 0
-
-for label in classes:
-    images, labels = load_images_from_path(f'Spectrograms/{label}', index)
-    x += images
-    y += labels
-    index += 1  
-
-# Train-test split
-
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.utils import to_categorical
-from sklearn.model_selection import train_test_split
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
+from tensorflow.keras.layers import BatchNormalization
 
-x_train, x_test, y_train, y_test = train_test_split(x, y, stratify=y, test_size=0.3, random_state=0)
+# Constants
+IMAGE_SIZE = 224
+BATCH_SIZE = 10
+EPOCHS = 30
+DATA_DIR = 'Spectrograms'
+CLASSES = ('backward', 'go', 'left', 'right', 'stop')
 
-x_train_norm = np.array(x_train) / 255
-x_test_norm = np.array(x_test) / 255
+# Configure GPU memory growth
+physical_devices = tf.config.list_physical_devices('GPU')
+if physical_devices:
+    for gpu in physical_devices:
+        tf.config.experimental.set_memory_growth(gpu, True)
 
-y_train_encoded = to_categorical(y_train)
-y_test_encoded = to_categorical(y_test)
+# Load and preprocess images
+def load_and_preprocess_image(file_path, label):
+    image = tf.io.read_file(file_path)
+    image = tf.image.decode_jpeg(image, channels=3)
+    image = tf.image.resize(image, [IMAGE_SIZE, IMAGE_SIZE])
+    image /= 255.0  # Normalize to [0, 1]
+    return image, label
 
-# Transfer learning
+# Create dataset
+def create_dataset(data_dir, classes):
+    file_paths = []
+    labels = []
 
-from keras.models import Sequential
-from keras.layers import Conv2D, MaxPooling2D
-from keras.layers import Flatten, Dense
-import keras
+    for index, label in enumerate(classes):
+        class_dir = os.path.join(data_dir, label)
+        for file in os.listdir(class_dir):
+            file_paths.append(os.path.join(class_dir, file))
+            labels.append(index)
 
-# CNN
+    dataset = tf.data.Dataset.from_tensor_slices((file_paths, labels))
+    dataset = dataset.map(load_and_preprocess_image, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    dataset = dataset.shuffle(buffer_size=1000).batch(BATCH_SIZE).prefetch(tf.data.experimental.AUTOTUNE)
 
-class CNN():
-    def __init__(self):
-        self.model = Sequential([
-            Conv2D(32, (3, 3), activation='relu', input_shape=(224, 224, 3)),
-            MaxPooling2D(2, 2),
-            Conv2D(128, (3, 3), activation='relu'),
-            MaxPooling2D(2, 2),
-            Conv2D(128, (3, 3), activation='relu'),
-            MaxPooling2D(2, 2),
-            Conv2D(128, (3, 3), activation='relu'),
-            MaxPooling2D(2, 2),
-            Flatten(),
-            Dense(1024, activation='relu'),
-            Dense(5, activation='log_softmax')
-        ])
-    
-    def forward(self):
-        optimizer = keras.optimizers.SGD(learning_rate=0.1, momentum=0.9)
-        self.model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
-        return self.model
+    return dataset
 
-with tf.device('GPU/1'):
-    model = CNN().forward()
-    hist = model.fit(x_train_norm, y_train_encoded, validation_data=(x_test_norm, y_test_encoded), batch_size=64, epochs=20)
+# Define the CNN model
+def build_model(input_shape):
+    model = Sequential([
+        Conv2D(32, (3, 3), activation='relu', input_shape=input_shape),
+	BatchNormalization(),
+        MaxPooling2D(2, 2),
+        Conv2D(128, (3, 3), activation='relu'),
+	BatchNormalization(),
+        MaxPooling2D(2, 2),
+        Conv2D(128, (3, 3), activation='relu'),
+	BatchNormalization(),
+        MaxPooling2D(2, 2),
+        Conv2D(128, (3, 3), activation='relu'),
+	BatchNormalization(),
+        MaxPooling2D(2, 2),
+	Dropout(0.5),
+        Flatten(),
+        Dense(1024, activation='relu'),
+        Dense(len(CLASSES), activation='softmax')
+    ])
+    return model
 
-# Save model
+# Train the model
+def train_model(model, train_dataset, test_dataset):
+    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
+                  loss='sparse_categorical_crossentropy',
+                  metrics=['accuracy'])
 
-model.save('model3.keras')
+    model.fit(train_dataset, validation_data=test_dataset, epochs=EPOCHS)
+
+# Create datasets
+dataset = create_dataset(DATA_DIR, CLASSES)
+train_size = int(0.8 * len(dataset))
+train_dataset = dataset.take(train_size)
+test_dataset = dataset.skip(train_size)
+
+# Build and train model
+model = build_model((IMAGE_SIZE, IMAGE_SIZE, 3))
+train_model(model, train_dataset, test_dataset)
+
+# Save the final model
+model.save('model.keras')
