@@ -108,8 +108,7 @@ void led(void * pvParameters) {
     }
 }
 
-// needs to be updated ...
-void motor(void * pvParameters) {  // library removed, with pwm to write directly instead
+void motor(void * pvParameters) { 
     if ((control == 0) || (front_obstacle == 1) || (back_obstacle == 1)) {
         ledcWriteChannel(MOTOR1_CHANNEL_A, 0);
         ledcWriteChannel(MOTOR1_CHANNEL_B, 0);
@@ -143,7 +142,7 @@ void motor(void * pvParameters) {  // library removed, with pwm to write directl
     }
 }
 
-void buzz() {
+void buzz(void * pvParameters) {
     if ((front_obstacle == 1) || (back_obstacle == 1)) {
         int size = sizeof(noteDurations) / sizeof(int);
         for (int thisNote = 0; thisNote < size; thisNote++) {
@@ -156,7 +155,7 @@ void buzz() {
     }
 }
 
-void avoidance() {
+void avoidance(void * pvParameters) {
     bool obstacle = digitalRead(AVOIDANCE1);
     if (!obstacle) {
         front_obstacle = 1;
@@ -172,7 +171,7 @@ void avoidance() {
     vTaskDelay(500 / portTICK_PERIOD_MS); 
 }
 
-void display() {
+void display(void * pvParameters) {
     lcd.setCursor(0, 0);
     lcd.print("Detected:");
     lcd.setCursor(0,1);
@@ -191,7 +190,7 @@ void display() {
     lcd.clear();
 }
 
-void servo() {
+void servo(void * pvParameters) {
     if (wave) {
         myservo.write(pos);
         change = (pos<0)? 1 : ((pos>180)? -1: change);
@@ -202,7 +201,30 @@ void servo() {
     }
 }
 
+void serial(void * pvParameters){
+    if (Serial.available() > 0) {
+        String input = Serial.readString();
+        Serial.print("You entered: ");
+        Serial.println(input); 
+        if (input == "stop") {
+            control = 0;
+        } else if (input == "straight") {
+            control = 1;
+        } else if (input == "reverse") {
+            control = 2;
+        } else if (input == "left") {
+            control = 3;
+        } else if (input == "right") {
+            control = 4;
+        }
+        vTaskDelay(1000 / portTICK_PERIOD_MS); 
+    }
+}
+
 void setup() {
+    Serial.begin(9600);
+    xTaskCreate(serial, "serial", 2048, NULL, 1, NULL);
+
     pinMode(LED1, OUTPUT);
     pinMode(LED2, OUTPUT);
     pinMode(LED3, OUTPUT);
@@ -215,7 +237,7 @@ void setup() {
     ledcAttachChannel(MOTOR1_IN1, MOTOR_FREQ, MOTOR_RESOLUTION, MOTOR1_CHANNEL_B);
     ledcAttachChannel(MOTOR2_IN4, MOTOR_FREQ, MOTOR_RESOLUTION, MOTOR2_CHANNEL_A);
     ledcAttachChannel(MOTOR2_IN4, MOTOR_FREQ, MOTOR_RESOLUTION, MOTOR2_CHANNEL_B);
-    xTaskCreate(motor, "motor", 2048, NULL, 1, NULL);  // be handled as interrupt? no
+    xTaskCreate(motor, "motor", 2048, NULL, 1, NULL);
 
     pinMode(BUZZER, OUTPUT);
     xTaskCreate(buzz, "buzz", 2048, NULL, 1, NULL);
