@@ -12,8 +12,8 @@
 #define AVOIDANCE2 26
 #define MOTOR1_IN1 18
 #define MOTOR1_IN2 19
-#define MOTOR2_IN3 1
-#define MOTOR2_IN4 3
+#define MOTOR2_IN3 16
+#define MOTOR2_IN4 17
 #define MOTOR1_CHANNEL_A 0  // PWM channel for forward direction
 #define MOTOR1_CHANNEL_B 1  // PWM channel for reverse direction
 #define MOTOR2_CHANNEL_A 2  // PWM channel for forward direction
@@ -123,27 +123,27 @@ void motor(void * pvParameters) {
             ledcWriteChannel(MOTOR2_CHANNEL_B, 0);
             vTaskDelay(2000 / portTICK_PERIOD_MS); 
         } else if (control == 1) {
-            ledcWriteChannel(MOTOR1_CHANNEL_A, 200);
+            ledcWriteChannel(MOTOR1_CHANNEL_A, 100);
             ledcWriteChannel(MOTOR1_CHANNEL_B, 0);
-            ledcWriteChannel(MOTOR2_CHANNEL_A, 200);
+            ledcWriteChannel(MOTOR2_CHANNEL_A, 100);
             ledcWriteChannel(MOTOR2_CHANNEL_B, 0);
             vTaskDelay(2000 / portTICK_PERIOD_MS); 
         } else if (control == 2) {
             ledcWriteChannel(MOTOR1_CHANNEL_A, 0);
-            ledcWriteChannel(MOTOR1_CHANNEL_B, 200);
+            ledcWriteChannel(MOTOR1_CHANNEL_B, 100);
             ledcWriteChannel(MOTOR2_CHANNEL_A, 0);
-            ledcWriteChannel(MOTOR2_CHANNEL_B, 200);
+            ledcWriteChannel(MOTOR2_CHANNEL_B, 100);
             vTaskDelay(2000 / portTICK_PERIOD_MS); 
         } else if (control == 3) {
-            ledcWriteChannel(MOTOR1_CHANNEL_A, 100);
+            ledcWriteChannel(MOTOR1_CHANNEL_A, 75);
             ledcWriteChannel(MOTOR1_CHANNEL_B, 0);
-            ledcWriteChannel(MOTOR2_CHANNEL_A, 150);
+            ledcWriteChannel(MOTOR2_CHANNEL_A, 100);
             ledcWriteChannel(MOTOR2_CHANNEL_B, 0);
             vTaskDelay(1000 / portTICK_PERIOD_MS); 
         } else if (control == 4) {
-            ledcWriteChannel(MOTOR1_CHANNEL_A, 150);
+            ledcWriteChannel(MOTOR1_CHANNEL_A, 100);
             ledcWriteChannel(MOTOR1_CHANNEL_B, 0);
-            ledcWriteChannel(MOTOR2_CHANNEL_A, 100);
+            ledcWriteChannel(MOTOR2_CHANNEL_A, 75);
             ledcWriteChannel(MOTOR2_CHANNEL_B, 0);
             vTaskDelay(1000 / portTICK_PERIOD_MS); 
         } else {
@@ -158,7 +158,8 @@ void buzz(void * pvParameters) {
             int size = sizeof(noteDurations) / sizeof(int);
             for (int thisNote = 0; thisNote < size; thisNote++) {
                 int noteDuration = 1000 / noteDurations[thisNote];
-                tone(BUZZER, melody[thisNote], noteDuration);
+                tone(BUZZER, melody[thisNote]);
+                vTaskDelay(noteDuration / portTICK_PERIOD_MS);
                 int pauseBetweenNotes = noteDuration * 1.30;
                 vTaskDelay(pauseBetweenNotes / portTICK_PERIOD_MS);
                 noTone(BUZZER);
@@ -211,11 +212,13 @@ void display(void * pvParameters) {
 void servo(void * pvParameters) {
     while (1) {
         if (wave) {
+            Serial.print("waving");
             myservo.write(pos);
             change = (pos<0)? 1 : ((pos>180)? -1: change);
             pos += change;
             vTaskDelay(5 / portTICK_PERIOD_MS);
         } else {
+            Serial.print("waiting");
             vTaskDelay(1000 / portTICK_PERIOD_MS); 
         }
     }
@@ -263,11 +266,11 @@ void setup() {
     // pinMode(LED_BUILTIN, OUTPUT)
     xTaskCreate(led, "led", 2048, NULL, 1, NULL);
 
-    // ledcAttachChannel(MOTOR1_IN1, MOTOR_FREQ, MOTOR_RESOLUTION, MOTOR1_CHANNEL_A);
-    // ledcAttachChannel(MOTOR1_IN1, MOTOR_FREQ, MOTOR_RESOLUTION, MOTOR1_CHANNEL_B);
-    // ledcAttachChannel(MOTOR2_IN4, MOTOR_FREQ, MOTOR_RESOLUTION, MOTOR2_CHANNEL_A);
-    // ledcAttachChannel(MOTOR2_IN4, MOTOR_FREQ, MOTOR_RESOLUTION, MOTOR2_CHANNEL_B);
-    // xTaskCreate(motor, "motor", 2048, NULL, 1, NULL);
+    ledcAttachChannel(MOTOR1_IN1, MOTOR_FREQ, MOTOR_RESOLUTION, MOTOR1_CHANNEL_A);
+    ledcAttachChannel(MOTOR1_IN2, MOTOR_FREQ, MOTOR_RESOLUTION, MOTOR1_CHANNEL_B);
+    ledcAttachChannel(MOTOR2_IN3, MOTOR_FREQ, MOTOR_RESOLUTION, MOTOR2_CHANNEL_A);
+    ledcAttachChannel(MOTOR2_IN4, MOTOR_FREQ, MOTOR_RESOLUTION, MOTOR2_CHANNEL_B);
+    xTaskCreate(motor, "motor", 2048, NULL, 1, NULL);
 
     pinMode(BUZZER, OUTPUT);
     xTaskCreate(buzz, "buzz", 2048, NULL, 1, NULL);
