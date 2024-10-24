@@ -21,6 +21,8 @@
 #define NUS_NET_USERNAME "e0957408"
 #define NUS_NET_PASSWORD "Q5a7cdhc@123" 
 
+#define LED 5
+
 RTC_DATA_ATTR int bootCount = 0;
 
 const char* ssid = "NUS_STU"; // eduroam SSID
@@ -38,6 +40,8 @@ const int headerSize = 44;
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
+  pinMode(LED, OUTPUT);
+ 
   ++bootCount;
   Serial.println("Boot number: " + String(bootCount));
   WiFi.disconnect(true);
@@ -57,6 +61,8 @@ void setup() {
   SPIFFSInit();
   i2sInit();
   i2s_adc(NULL);
+  light(300);
+  light(300);
   // xTaskCreate(i2s_adc, "i2s_adc", 1024 * 2, NULL, 1, NULL);
   Serial.println("Going to sleep now");
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
@@ -69,8 +75,18 @@ void setup() {
 void loop() {
 }
 
+void light(int time) {
+  Serial.print("Blink for ");
+  Serial.print(time);
+  Serial.println("seconds");
+  digitalWrite(LED, HIGH);  // turn the LED on (HIGH is the voltage level)
+  delay(time);                      // wait for a second
+  digitalWrite(LED, LOW);   // turn the LED off by making the voltage LOW
+  delay(100); 
+}
+
 void SPIFFSInit() {
-  if(!SPIFFS.begin(true)){
+  if(!SPIFFS.begin(true)) {
     Serial.println("SPIFFS initialisation failed!");
     while(1) yield();
   }
@@ -137,6 +153,7 @@ void i2s_adc(void *arg) {
     i2s_read(I2S_PORT, (void*) i2s_read_buff, i2s_read_len, &bytes_read, portMAX_DELAY);
     
     Serial.println(" *** Recording Start *** ");
+    light(1500);
     while (flash_wr_size < FLASH_RECORD_SIZE) {
         //read data from I2S bus, in this case, from ADC.
         i2s_read(I2S_PORT, (void*) i2s_read_buff, i2s_read_len, &bytes_read, portMAX_DELAY);
