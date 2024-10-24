@@ -1,14 +1,15 @@
+
 #include <driver/i2s.h>
 #include <SPIFFS.h>
 
-#define I2S_WS 22
-#define I2S_SD 21
-#define I2S_SCK 26
+#define I2S_WS 25
+#define I2S_SD 32
+#define I2S_SCK 33
 #define I2S_PORT I2S_NUM_0
 #define I2S_SAMPLE_RATE   (16000)
 #define I2S_SAMPLE_BITS   (16)
 #define I2S_READ_LEN      (16 * 1024)
-#define RECORD_TIME       (20) //Seconds
+#define RECORD_TIME       (3) //Seconds
 #define I2S_CHANNEL_NUM   (1)
 #define FLASH_RECORD_SIZE (I2S_CHANNEL_NUM * I2S_SAMPLE_RATE * I2S_SAMPLE_BITS / 8 * RECORD_TIME)
 
@@ -29,7 +30,7 @@ void loop() {
 
 }
 
-void SPIFFSInit() {
+void SPIFFSInit(){
   if(!SPIFFS.begin(true)){
     Serial.println("SPIFFS initialisation failed!");
     while(1) yield();
@@ -48,7 +49,7 @@ void SPIFFSInit() {
   listSPIFFS();
 }
 
-void i2sInit() {
+void i2sInit(){
   i2s_config_t i2s_config = {
     .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX),
     .sample_rate = I2S_SAMPLE_RATE,
@@ -74,7 +75,8 @@ void i2sInit() {
 }
 
 
-void i2s_adc_data_scale(uint8_t * d_buff, uint8_t* s_buff, uint32_t len) {
+void i2s_adc_data_scale(uint8_t * d_buff, uint8_t* s_buff, uint32_t len)
+{
     uint32_t j = 0;
     uint32_t dac_value = 0;
     for (int i = 0; i < len; i += 2) {
@@ -84,7 +86,8 @@ void i2s_adc_data_scale(uint8_t * d_buff, uint8_t* s_buff, uint32_t len) {
     }
 }
 
-void i2s_adc(void *arg) {
+void i2s_adc(void *arg)
+{
     
     int i2s_read_len = I2S_READ_LEN;
     int flash_wr_size = 0;
@@ -119,7 +122,8 @@ void i2s_adc(void *arg) {
     vTaskDelete(NULL);
 }
 
-void example_disp_buf(uint8_t* buf, int length) {
+void example_disp_buf(uint8_t* buf, int length)
+{
     printf("======\n");
     for (int i = 0; i < length; i++) {
         printf("%02x ", buf[i]);
@@ -130,7 +134,7 @@ void example_disp_buf(uint8_t* buf, int length) {
     printf("======\n");
 }
 
-void wavHeader(byte* header, int wavSize) {
+void wavHeader(byte* header, int wavSize){
   header[0] = 'R';
   header[1] = 'I';
   header[2] = 'F';
@@ -176,6 +180,7 @@ void wavHeader(byte* header, int wavSize) {
   header[41] = (byte)((wavSize >> 8) & 0xFF);
   header[42] = (byte)((wavSize >> 16) & 0xFF);
   header[43] = (byte)((wavSize >> 24) & 0xFF);
+  
 }
 
 
