@@ -18,23 +18,7 @@ from keras.preprocessing import image
 
 classes = ('backward', 'go', 'left', 'right', 'stop') # 5 classes
 
-loaded_model = load_model('test_model.keras')
-
-audio_data = bytearray()
-
-def on_connect(client, userdata, flags, rc):
-	print("Connected with result code: " + str(rc))
-	client.subscribe("voice/#")
-
-def on_message(client, userdata, message):
-	topic = message.topic
-	global audio_data
-    # Append the received payload (audio chunk) to the buffer
-	audio_data.extend(message.payload)
-	# decoded_message = message.payload.decode('utf-8')
-	print(f'message: ', message)    
-
-print(audio_data)
+loaded_model = load_model('new_model.keras')
 
 def save_wav_file(file_path, audio_data):
     with open(file_path, 'wb') as wav_file:
@@ -49,14 +33,7 @@ def load_sample():
     x /= 255.0  # Normalize to [0, 1] for your model
     return x
 
-client = mqtt.Client()
-client.on_connect = on_connect
-client.on_message = on_message
-client.connect("localhost", 1883, 60)
-client.loop_start()
-try:
-    input("Press Enter to stop receiving and save the .wav file...\n")
-finally:
+def process():
     client.loop_stop()
 
     # Save the received audio data to a file
@@ -68,13 +45,66 @@ finally:
     #Predict
     predictions = loaded_model.predict(load_sample())
     print(f"Evaluating and classifying recording")
-    
+
     for i, label in enumerate(classes):
         print(f'{label}: {predictions[0][i]}')
     predicted_label_index = np.argmax(predictions[0])
     predicted_label = classes[predicted_label_index]
     print(f'Predicted label: {predicted_label}')
 
+    audio_data.clear()
+
+    client.loop()
+
+audio_data = bytearray()
+
+def on_connect(client, userdata, flags, rc):
+	print("Connected with result code: " + str(rc))
+	client.subscribe("voice/#")
+
+def on_message(client, userdata, message):
+    topic = message.topic
+    global audio_data
+    # Append the received payload (audio chunk) to the buffer
+    audio_data.extend(message.payload)
+    print(f'message: ', message)
+    if topic == "voice/stop":
+        print(message.payload.decode('utf-8'))
+        process()
+    
+
+print(audio_data)
+
+client = mqtt.Client()
+client.on_connect = on_connect
+client.on_message = on_message
+client.connect("localhost", 1883, 60)
+client.loop_forever()
+
+
+     
+# try:
+#     input("Press Enter to stop receiving and save the .wav file...\n")
+# finally:
+#     client.loop_stop()
+
+#     # Save the received audio data to a file
+#     save_wav_file('Sounds/recording.wav', audio_data)
+#     print("saved .wav file")
+
+#     create_pngs_from_wavs('Sounds/', 'Spectrograms/')
+
+#     #Predict
+#     predictions = loaded_model.predict(load_sample())
+#     print(f"Evaluating and classifying recording")
+
+#     for i, label in enumerate(classes):
+#         print(f'{label}: {predictions[0][i]}')
+#     predicted_label_index = np.argmax(predictions[0])
+#     predicted_label = classes[predicted_label_index]
+#     print(f'Predicted label: {predicted_label}')
+
+#     client.loop()
 
 
 
