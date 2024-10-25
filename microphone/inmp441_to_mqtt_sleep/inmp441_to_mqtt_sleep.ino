@@ -30,7 +30,7 @@ const char* ssid = "NUS_STU"; // eduroam SSID
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-const char* mqtt_server = "172.31.39.208";
+const char* mqtt_server = "172.31.39.221";
 const char* mqtt_topic = "voice/wav";
 
 File file;
@@ -78,6 +78,7 @@ void loop() {
 void light(int time) {
   Serial.print("Blink for ");
   Serial.print(time);
+  Serial.print(" ");
   Serial.println("seconds");
   digitalWrite(LED, HIGH);  // turn the LED on (HIGH is the voltage level)
   delay(time);                      // wait for a second
@@ -306,5 +307,7 @@ void send_wav_to_mqtt() {
   }
 
   file.close();
-  Serial.println("File sent over MQTT");
+  Serial.println("File sent over to MQTT");
+  String message = "stop";
+  client.publish("voice/stop", message.c_str());
 }
