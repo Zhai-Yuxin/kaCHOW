@@ -82,32 +82,6 @@ client.connect("localhost", 1883, 60)
 client.loop_forever()
 
 
-     
-# try:
-#     input("Press Enter to stop receiving and save the .wav file...\n")
-# finally:
-#     client.loop_stop()
-
-#     # Save the received audio data to a file
-#     save_wav_file('Sounds/recording.wav', audio_data)
-#     print("saved .wav file")
-
-#     create_pngs_from_wavs('Sounds/', 'Spectrograms/')
-
-#     #Predict
-#     predictions = loaded_model.predict(load_sample())
-#     print(f"Evaluating and classifying recording")
-
-#     for i, label in enumerate(classes):
-#         print(f'{label}: {predictions[0][i]}')
-#     predicted_label_index = np.argmax(predictions[0])
-#     predicted_label = classes[predicted_label_index]
-#     print(f'Predicted label: {predicted_label}')
-
-#     client.loop()
-
-
-
 
 
     
