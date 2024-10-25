@@ -297,17 +297,6 @@ void send_wav_to_mqtt() {
   size_t bytesRead;
   byte buffer[chunkSize];
   Serial.println("Sending chunks over");
-  // while (fileSize > 0) {
-  //   size_t toRead = (fileSize < chunkSize) ? fileSize : chunkSize;
-  //   file.read(buffer, toRead);
-    
-  //   // Publish chunk to MQTT topic
-  //   client.publish(mqtt_topic, buffer, toRead);
-  //   Serial.println((const char*) buffer);
-  //   // client.publish(mqtt_topic, (const byte*) 10, 10);
-    
-  //   fileSize -= toRead;
-  // }
 
   while ((bytesRead = file.read(buffer, chunkSize)) > 0) {
     if (client.connected()) {
