@@ -1,4 +1,4 @@
-# mosquitto -c /etc/mosquitto/mosquitto.conf to begin to MQTT server
+# mosquitto -c /etc/mosquitto/mosquitto.conf to start MQTT
 
 import paho.mqtt.client as mqtt
 from time import sleep
