@@ -11,26 +11,23 @@
 #define I2S_SAMPLE_RATE   (16000)
 #define I2S_SAMPLE_BITS   (16)
 #define I2S_READ_LEN      (16 * 1024)
-#define RECORD_TIME       (3) //Seconds
+#define RECORD_TIME       (1) //Seconds
 #define I2S_CHANNEL_NUM   (1)
 #define FLASH_RECORD_SIZE (I2S_CHANNEL_NUM * I2S_SAMPLE_RATE * I2S_SAMPLE_BITS / 8 * RECORD_TIME)
 #define uS_TO_S_FACTOR 1000000ULL /* Conversion factor for micro seconds to seconds */
 #define TIME_TO_SLEEP  10          /* Time ESP32 will go to sleep (in seconds) */
 
-#define NUS_NET_IDENTITY "nusstu\e0957408"  //ie nusstu\e0123456
-#define NUS_NET_USERNAME "e0957408"
-#define NUS_NET_PASSWORD "Q5a7cdhc@123" 
-
-#define LED 5
+#define LED 13
 
 RTC_DATA_ATTR int bootCount = 0;
 
-const char* ssid = "NUS_STU"; // eduroam SSID
+const char* ssid = "SINGTEL-9HTX";
+const char* password = "Ccktgp972";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-const char* mqtt_server = "172.31.39.221";
+const char* mqtt_server = "192.168.1.82";
 const char* mqtt_topic = "voice/wav";
 
 File file;
@@ -44,42 +41,54 @@ void setup() {
  
   ++bootCount;
   Serial.println("Boot number: " + String(bootCount));
-  WiFi.disconnect(true);
-  WiFi.begin(ssid, WPA2_AUTH_PEAP, NUS_NET_IDENTITY, NUS_NET_USERNAME, NUS_NET_PASSWORD);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(F("."));
-  }
-  Serial.println("");
-  Serial.println(F("WiFi is connected!"));
-  Serial.println(F("IP address set: "));
-  Serial.println(WiFi.localIP()); //print LAN IP
+  setup_wifi();
 
   client.setServer(mqtt_server, 1883);  
-  // client.connect(mqtt_server, ssid, password);
-  client.connect(mqtt_server);
+  client.connect(mqtt_server, ssid, password);
   SPIFFSInit();
   i2sInit();
   i2s_adc(NULL);
   light(300);
   light(300);
-  // xTaskCreate(i2s_adc, "i2s_adc", 1024 * 2, NULL, 1, NULL);
   Serial.println("Going to sleep now");
-  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
-  Serial.println("Setup ESP32 to sleep for every " + String(TIME_TO_SLEEP) + " Seconds");
+
+  // Deep sleep woken up by touch
+  touchAttachInterrupt(T5, touch_isr_handler, 50);
+  esp_sleep_enable_touchpad_wakeup();
   Serial.flush();
   esp_deep_sleep_start();
-  Serial.println("test during sleep");
 }
 
 void loop() {
+}
+
+void setup_wifi() {
+  delay(10);
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
+void touch_isr_handler() {
+  Serial.println("Touch");
 }
 
 void light(int time) {
   Serial.print("Blink for ");
   Serial.print(time);
   Serial.print(" ");
-  Serial.println("seconds");
+  Serial.println("ms");
   digitalWrite(LED, HIGH);  // turn the LED on (HIGH is the voltage level)
   delay(time);                      // wait for a second
   digitalWrite(LED, LOW);   // turn the LED off by making the voltage LOW
@@ -173,9 +182,7 @@ void i2s_adc(void *arg) {
     free(flash_write_buff);
     flash_write_buff = NULL;
     
-    listSPIFFS();
-    // vTaskDelete(NULL);
-    
+    listSPIFFS();  
 }
 
 void example_disp_buf(uint8_t* buf, int length) {
