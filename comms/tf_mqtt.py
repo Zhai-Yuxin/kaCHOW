@@ -1,14 +1,11 @@
 # mosquitto -c /etc/mosquitto/mosquitto.conf to start MQTT
 
-import paho.mqtt.client as mqtt
-import numpy as np
-from preprocessing import create_pngs_from_wavs
-import tensorflow as tf
-from tensorflow.keras.models import load_model
-import numpy as np
-from keras.preprocessing import image
 import wave
 import pathlib
+import paho.mqtt.client as mqtt
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.models import load_model
 
 DATASET_PATH = 'Sounds'
 
@@ -56,8 +53,6 @@ def process():
     # Save the received audio data to a file
     save_wav_file('Sounds/recording.wav', audio_data)
     print("saved .wav file")
-
-    create_pngs_from_wavs('Sounds/', 'Spectrograms/')
 
     #Predict
     predictions = loaded_model.predict(load_sample())
