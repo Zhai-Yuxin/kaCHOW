@@ -59,17 +59,16 @@ def process():
     print(f"Evaluating and classifying recording")
  
     probability = tf.nn.softmax(predictions[0])
+
     for i, label in enumerate(classes):
         print(f'{label}: {probability.numpy()[i] * 100}')
-    print(max(probability.numpy()))
+
     if (max(probability.numpy()) * 100 < 50):
         print("try again")
     else:
         predicted_label_index = np.argmax(predictions[0])
         predicted_label = classes[predicted_label_index]
         print(f'Predicted label: {predicted_label}')
-
-    
 
     audio_data.clear()
 
@@ -92,7 +91,6 @@ def on_message(client, userdata, message):
         print(message.payload.decode('utf-8'))
         process()
     
-
 print(audio_data)
 
 client = mqtt.Client()
