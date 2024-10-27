@@ -8,14 +8,12 @@
 #define I2S_SD 32
 #define I2S_SCK 33
 #define I2S_PORT I2S_NUM_0
-#define I2S_SAMPLE_RATE   (16000)
-#define I2S_SAMPLE_BITS   (16)
-#define I2S_READ_LEN      (16 * 1024)
-#define RECORD_TIME       (3) //Seconds
-#define I2S_CHANNEL_NUM   (1)
-#define FLASH_RECORD_SIZE (I2S_CHANNEL_NUM * I2S_SAMPLE_RATE * I2S_SAMPLE_BITS / 8 * RECORD_TIME)
-#define uS_TO_S_FACTOR 1000000ULL /* Conversion factor for micro seconds to seconds */
-#define TIME_TO_SLEEP  10          /* Time ESP32 will go to sleep (in seconds) */
+#define I2S_SAMPLE_RATE   16000
+#define I2S_SAMPLE_BITS   16
+#define I2S_READ_LEN      16 * 1024
+#define RECORD_TIME       1 //Seconds
+#define I2S_CHANNEL_NUM   1
+#define FLASH_RECORD_SIZE (I2S_CHANNEL_NUM * I2S_SAMPLE_RATE * I2S_SAMPLE_BITS / 8 * RECORD_TIME - 2400)
 
 #define NUS_NET_IDENTITY "nusstu\e0957408"  //ie nusstu\e0123456
 #define NUS_NET_USERNAME "e0957408"
@@ -30,7 +28,7 @@ const char* ssid = "NUS_STU"; // eduroam SSID
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-const char* mqtt_server = "172.31.39.221";
+const char* mqtt_server = "172.31.38.68";
 const char* mqtt_topic = "voice/wav";
 
 File file;
@@ -41,9 +39,30 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
   pinMode(LED, OUTPUT);
- 
   ++bootCount;
   Serial.println("Boot number: " + String(bootCount));
+  
+  setup_wifi();
+  
+  client.setServer(mqtt_server, 1883); 
+  client.connect(mqtt_server);
+  SPIFFSInit();
+  i2sInit();
+  i2s_adc(NULL);
+  light(300);
+  light(300);
+  
+  Serial.println("Going to sleep now");
+  touchAttachInterrupt(T5, touch_isr_handler, 50);
+  esp_sleep_enable_touchpad_wakeup();;
+  Serial.flush();
+  esp_deep_sleep_start();
+}
+
+void loop() {
+}
+
+void setup_wifi() {
   WiFi.disconnect(true);
   WiFi.begin(ssid, WPA2_AUTH_PEAP, NUS_NET_IDENTITY, NUS_NET_USERNAME, NUS_NET_PASSWORD);
   while (WiFi.status() != WL_CONNECTED) {
@@ -54,24 +73,10 @@ void setup() {
   Serial.println(F("WiFi is connected!"));
   Serial.println(F("IP address set: "));
   Serial.println(WiFi.localIP()); //print LAN IP
-
-  client.setServer(mqtt_server, 1883);  
-  // client.connect(mqtt_server, ssid, password);
-  client.connect(mqtt_server);
-  SPIFFSInit();
-  i2sInit();
-  i2s_adc(NULL);
-  light(300);
-  light(300);
-  // xTaskCreate(i2s_adc, "i2s_adc", 1024 * 2, NULL, 1, NULL);
-  Serial.println("Going to sleep now");
-  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
-  Serial.println("Setup ESP32 to sleep for every " + String(TIME_TO_SLEEP) + " Seconds");
-  Serial.flush();
-  esp_deep_sleep_start();
 }
 
-void loop() {
+void touch_isr_handler() {
+  Serial.println("Touch");
 }
 
 void light(int time) {
@@ -172,9 +177,7 @@ void i2s_adc(void *arg) {
     free(flash_write_buff);
     flash_write_buff = NULL;
     
-    listSPIFFS();
-    // vTaskDelete(NULL);
-    
+    listSPIFFS();    
 }
 
 void example_disp_buf(uint8_t* buf, int length) {
