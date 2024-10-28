@@ -23,7 +23,7 @@
 #define uS_TO_S_FACTOR 1000000ULL /* Conversion factor for micro seconds to seconds */
 #define TIME_TO_SLEEP  20
 
-#define LED 13
+#define LEDPIN 13
 
 RTC_DATA_ATTR int bootCount = 0;
 
@@ -32,35 +32,65 @@ const char* ssid = "NUS_STU"; // eduroam SSID
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-const char* mqtt_server = "172.31.38.31";
+const char* mqtt_server = "10.249.6.41";
 const char* mqtt_topic = "voice/wav";
 
 File file;
 const char filename[] = "/recording.wav";
 const int headerSize = 44;
 
+void print_wakeup_reason() {
+  esp_sleep_wakeup_cause_t wakeup_reason;
+
+  wakeup_reason = esp_sleep_get_wakeup_cause();
+
+  switch (wakeup_reason) {
+    case ESP_SLEEP_WAKEUP_EXT0:     Serial.println("Wakeup caused by external signal using RTC_IO"); break;
+    case ESP_SLEEP_WAKEUP_EXT1:     Serial.println("Wakeup caused by external signal using RTC_CNTL"); break;
+    case ESP_SLEEP_WAKEUP_TIMER:    Serial.println("Wakeup caused by timer"); break;
+    case ESP_SLEEP_WAKEUP_TOUCHPAD: Serial.println("Wakeup caused by touchpad"); break;
+    case ESP_SLEEP_WAKEUP_ULP:      Serial.println("Wakeup caused by ULP program"); break;
+    default:                        Serial.printf("Wakeup was not caused by deep sleep: %d\n", wakeup_reason); break;
+  }
+}
+
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
-  pinMode(LED, OUTPUT);
+  pinMode(LEDPIN, OUTPUT);
   ++bootCount;
   Serial.println("Boot number: " + String(bootCount));
-  
+  print_wakeup_reason();
+
+  // Connect to wifi
   setup_wifi();
   
-  client.setServer(mqtt_server, 1883); 
-  client.connect(mqtt_server);
+  // Connect to MQTT Server
+  connect_mqtt();
+  
   SPIFFSInit();
   i2sInit();
   i2s_adc(NULL);
   light(300);
   light(300);
   
+  // Deep Sleep
   Serial.println("Going to sleep now");
+
+  // Wake up by time 
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
   Serial.println("Setup ESP32 to sleep for every " + String(TIME_TO_SLEEP) + " Seconds");
+
+  // Wake up by touch
   touchAttachInterrupt(T5, touch_isr_handler, 50);
   esp_sleep_enable_touchpad_wakeup();;
+
+  // Wake up by sound
+  esp_sleep_enable_ext1_wakeup(
+    (1<<GPIO_NUM_32) | (1<<GPIO_NUM_25),
+    ESP_EXT1_WAKEUP_ANY_HIGH
+  );
+
   Serial.flush();
   esp_deep_sleep_start();
 }
@@ -70,6 +100,8 @@ void loop() {
 
 void setup_wifi() {
   WiFi.disconnect(true);
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
   WiFi.begin(ssid, WPA2_AUTH_PEAP, NUS_NET_IDENTITY, NUS_NET_USERNAME, NUS_NET_PASSWORD);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -85,14 +117,26 @@ void touch_isr_handler() {
   Serial.println("Touch");
 }
 
+void connect_mqtt() {
+  Serial.print("Connecting to ");
+  Serial.println(mqtt_server);
+  client.setServer(mqtt_server, 1883);
+  while (client.connect(mqtt_server) == false) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.println("Connected to mqtt server");
+}
+
 void light(int time) {
   Serial.print("Blink for ");
   Serial.print(time);
   Serial.print(" ");
   Serial.println("seconds");
-  digitalWrite(LED, HIGH);  // turn the LED on (HIGH is the voltage level)
+  digitalWrite(LEDPIN, HIGH);  // turn the LED on (HIGH is the voltage level)
   delay(time);                      // wait for a second
-  digitalWrite(LED, LOW);   // turn the LED off by making the voltage LOW
+  digitalWrite(LEDPIN, LOW);   // turn the LED off by making the voltage LOW
   delay(100); 
 }
 
