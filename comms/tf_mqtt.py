@@ -6,12 +6,33 @@ import paho.mqtt.client as mqtt
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import load_model
+import json
+import os
+from datetime import datetime, timedelta
+import boto3
 
 DATASET_PATH = 'Sounds'
 
 classes = ('backward', 'go', 'left', 'right', 'stop') # 5 classes
 
 loaded_model = load_model('tf_model.keras')
+
+dynamodb = boto3.resource('dynamodb') 
+table = dynamodb.Table('kachow_test') 
+
+s3 = boto3.client('s3')
+
+def upload_to_dynamodb(recognized_command):
+    utc_now = datetime.utcnow()
+    gmt_plus_8 = utc_now + timedelta(hours=8)
+    timestamp = gmt_plus_8.strftime('%Y-%m-%d/%H:%M:%S')
+    s3.upload_file('Sounds/recording.wav', 'kachow-bucket', 'Data/' + timestamp +'.wav') 
+    url = 'https://kachow-bucket.s3.ap-southeast-1.amazonaws.com/Data/' + timestamp + '.wav'
+    table.put_item(Item={ 
+        'timestamp': timestamp,
+        'command': recognized_command,
+        'url':url
+    })
 
 def save_wav_file(file_path, audio_data):
     with wave.open(file_path, 'wb') as wav_file:
@@ -46,7 +67,6 @@ def load_sample():
 
     return x
 
-
 def process():
     client.loop_stop()
 
@@ -61,7 +81,7 @@ def process():
     probability = tf.nn.softmax(predictions[0])
 
     for i, label in enumerate(classes):
-        print(f'{label}: {probability.numpy()[i] * 100}')
+        print(f'{label}: {probability.numpy()[i] * 100}%')
 
     if (max(probability.numpy()) * 100 < 50):
         print("try again")
@@ -69,6 +89,7 @@ def process():
         predicted_label_index = np.argmax(predictions[0])
         predicted_label = classes[predicted_label_index]
         print(f'Predicted label: {predicted_label}')
+        upload_to_dynamodb(predicted_label)
 
     audio_data.clear()
 
