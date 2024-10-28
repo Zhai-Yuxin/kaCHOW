@@ -1,3 +1,4 @@
+#include "Arduino.h"
 #include <PubSubClient.h>
 #include <WiFi.h>
 #include <driver/i2s.h>
@@ -17,7 +18,10 @@
 
 #define NUS_NET_IDENTITY "nusstu\e0957408"  //ie nusstu\e0123456
 #define NUS_NET_USERNAME "e0957408"
-#define NUS_NET_PASSWORD "Q5a7cdhc@123" 
+#define NUS_NET_PASSWORD "Q5a7cdhc@123"
+
+#define uS_TO_S_FACTOR 1000000ULL /* Conversion factor for micro seconds to seconds */
+#define TIME_TO_SLEEP  20
 
 #define LED 13
 
@@ -28,7 +32,7 @@ const char* ssid = "NUS_STU"; // eduroam SSID
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-const char* mqtt_server = "172.31.38.68";
+const char* mqtt_server = "172.31.38.31";
 const char* mqtt_topic = "voice/wav";
 
 File file;
@@ -53,6 +57,8 @@ void setup() {
   light(300);
   
   Serial.println("Going to sleep now");
+  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+  Serial.println("Setup ESP32 to sleep for every " + String(TIME_TO_SLEEP) + " Seconds");
   touchAttachInterrupt(T5, touch_isr_handler, 50);
   esp_sleep_enable_touchpad_wakeup();;
   Serial.flush();
