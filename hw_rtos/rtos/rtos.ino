@@ -1,6 +1,8 @@
 #include "pitches.h"
 #include <LiquidCrystal_I2C.h>
 #include <ESP32Servo.h>
+#include <WiFi.h>
+#include "ESP32MQTTClient.h"
 
 #define LED1 12
 #define LED2 13
@@ -8,6 +10,7 @@
 #define LED4 33
 #define LED5 25
 #define BUZZER 14
+#define BUZZER_CHANNEL 4
 #define AVOIDANCE1 27
 #define AVOIDANCE2 26
 #define MOTOR1_IN1 18
@@ -19,23 +22,23 @@
 #define MOTOR2_CHANNEL_A 2  // PWM channel for forward direction
 #define MOTOR2_CHANNEL_B 3  // PWM channel for reverse direction
 #define MOTOR_FREQ 5000     // PWM frequency
-#define MOTOR_RESOLUTION 8  // PWM resolution (8-bit: 0-255)
-
+#define RESOLUTION 8  // PWM resolution (8-bit: 0-255)
+#define SERVO 5 
 // connect LCD_SDA 21
 // connect LCD_SCL 22
-#define SERVO 5  // waving small flag when botton pressed on web?
 
 // flags
 volatile int control = 0;
 volatile bool front_obstacle = 0;
 volatile bool back_obstacle = 0;
 volatile bool wave = 0;
+volatile int check = 10;
 
 LiquidCrystal_I2C lcd(0x27,16,2);
 
 Servo myservo;
 volatile int pos = 0;
-volatile int change = 1;
+volatile int change = 10;
 
 int melody[] = {
   NOTE_E5, NOTE_E5, NOTE_E5,
@@ -58,6 +61,15 @@ int noteDurations[] = {
   8, 8, 8, 8,
   4, 4
 };
+
+const char *ssid = "HUAWEI P30";
+const char *pass = "suibianxiafang123";
+char *server = "mqtt://192.168.43.15:1883";
+
+char *subscribeTopic = "control";
+char *publishTopic = "boo";
+
+ESP32MQTTClient mqttClient;  // all params are set later
 
 void led(void * pvParameters) {
     while (1) {
@@ -123,29 +135,49 @@ void motor(void * pvParameters) {
             ledcWriteChannel(MOTOR2_CHANNEL_B, 0);
             vTaskDelay(2000 / portTICK_PERIOD_MS); 
         } else if (control == 1) {
-            ledcWriteChannel(MOTOR1_CHANNEL_A, 100);
+            ledcWriteChannel(MOTOR1_CHANNEL_A, 120);
             ledcWriteChannel(MOTOR1_CHANNEL_B, 0);
-            ledcWriteChannel(MOTOR2_CHANNEL_A, 100);
+            ledcWriteChannel(MOTOR2_CHANNEL_A, 120);
             ledcWriteChannel(MOTOR2_CHANNEL_B, 0);
-            vTaskDelay(2000 / portTICK_PERIOD_MS); 
+            if (check > 0) {
+                vTaskDelay(500 / portTICK_PERIOD_MS); 
+                check = check - 1;
+            } else {
+                control = 0;
+            }
         } else if (control == 2) {
             ledcWriteChannel(MOTOR1_CHANNEL_A, 0);
-            ledcWriteChannel(MOTOR1_CHANNEL_B, 100);
+            ledcWriteChannel(MOTOR1_CHANNEL_B, 120);
             ledcWriteChannel(MOTOR2_CHANNEL_A, 0);
-            ledcWriteChannel(MOTOR2_CHANNEL_B, 100);
-            vTaskDelay(2000 / portTICK_PERIOD_MS); 
+            ledcWriteChannel(MOTOR2_CHANNEL_B, 120);
+            if (check > 0) {
+                vTaskDelay(500 / portTICK_PERIOD_MS); 
+                check = check - 1;
+            } else {
+                control = 0;
+            }
         } else if (control == 3) {
-            ledcWriteChannel(MOTOR1_CHANNEL_A, 75);
+            ledcWriteChannel(MOTOR1_CHANNEL_A, 80);
             ledcWriteChannel(MOTOR1_CHANNEL_B, 0);
-            ledcWriteChannel(MOTOR2_CHANNEL_A, 100);
+            ledcWriteChannel(MOTOR2_CHANNEL_A, 120);
             ledcWriteChannel(MOTOR2_CHANNEL_B, 0);
-            vTaskDelay(1000 / portTICK_PERIOD_MS); 
+            if (check > 0) {
+                vTaskDelay(500 / portTICK_PERIOD_MS); 
+                check = check - 1;
+            } else {
+                control = 0;
+            }
         } else if (control == 4) {
-            ledcWriteChannel(MOTOR1_CHANNEL_A, 100);
+            ledcWriteChannel(MOTOR1_CHANNEL_A, 120);
             ledcWriteChannel(MOTOR1_CHANNEL_B, 0);
-            ledcWriteChannel(MOTOR2_CHANNEL_A, 75);
+            ledcWriteChannel(MOTOR2_CHANNEL_A, 80);
             ledcWriteChannel(MOTOR2_CHANNEL_B, 0);
-            vTaskDelay(1000 / portTICK_PERIOD_MS); 
+            if (check > 0) {
+                vTaskDelay(500 / portTICK_PERIOD_MS); 
+                check = check - 1;
+            } else {
+                control = 0;
+            }
         } else {
             vTaskDelay(1000 / portTICK_PERIOD_MS); 
         }
@@ -158,11 +190,12 @@ void buzz(void * pvParameters) {
             int size = sizeof(noteDurations) / sizeof(int);
             for (int thisNote = 0; thisNote < size; thisNote++) {
                 int noteDuration = 1000 / noteDurations[thisNote];
-                tone(BUZZER, melody[thisNote]);
+                ledcWriteTone(BUZZER, melody[thisNote]);
+                ledcWrite(BUZZER, 127);
                 vTaskDelay(noteDuration / portTICK_PERIOD_MS);
+                ledcWrite(BUZZER, 0);
                 int pauseBetweenNotes = noteDuration * 1.30;
                 vTaskDelay(pauseBetweenNotes / portTICK_PERIOD_MS);
-                noTone(BUZZER);
             }
         } else {
             vTaskDelay(500 / portTICK_PERIOD_MS); 
@@ -212,13 +245,11 @@ void display(void * pvParameters) {
 void servo(void * pvParameters) {
     while (1) {
         if (wave) {
-            Serial.print("waving");
             myservo.write(pos);
-            change = (pos<0)? 1 : ((pos>180)? -1: change);
+            change = (pos<0)? 10 : ((pos>180)? -10: change);
             pos += change;
-            vTaskDelay(5 / portTICK_PERIOD_MS);
+            vTaskDelay(25 / portTICK_PERIOD_MS);
         } else {
-            Serial.print("waiting");
             vTaskDelay(1000 / portTICK_PERIOD_MS); 
         }
     }
@@ -256,7 +287,7 @@ void serial(void * pvParameters){
 
 void setup() {
     Serial.begin(9600);
-    xTaskCreate(serial, "serial", 2048, NULL, 1, NULL);
+    // xTaskCreate(serial, "serial", 2048, NULL, 1, NULL);
 
     pinMode(LED1, OUTPUT);
     pinMode(LED2, OUTPUT);
@@ -266,13 +297,14 @@ void setup() {
     // pinMode(LED_BUILTIN, OUTPUT)
     xTaskCreate(led, "led", 2048, NULL, 1, NULL);
 
-    ledcAttachChannel(MOTOR1_IN1, MOTOR_FREQ, MOTOR_RESOLUTION, MOTOR1_CHANNEL_A);
-    ledcAttachChannel(MOTOR1_IN2, MOTOR_FREQ, MOTOR_RESOLUTION, MOTOR1_CHANNEL_B);
-    ledcAttachChannel(MOTOR2_IN3, MOTOR_FREQ, MOTOR_RESOLUTION, MOTOR2_CHANNEL_A);
-    ledcAttachChannel(MOTOR2_IN4, MOTOR_FREQ, MOTOR_RESOLUTION, MOTOR2_CHANNEL_B);
+    ledcAttachChannel(MOTOR1_IN1, MOTOR_FREQ, RESOLUTION, MOTOR1_CHANNEL_A);
+    ledcAttachChannel(MOTOR1_IN2, MOTOR_FREQ, RESOLUTION, MOTOR1_CHANNEL_B);
+    ledcAttachChannel(MOTOR2_IN3, MOTOR_FREQ, RESOLUTION, MOTOR2_CHANNEL_A);
+    ledcAttachChannel(MOTOR2_IN4, MOTOR_FREQ, RESOLUTION, MOTOR2_CHANNEL_B);
     xTaskCreate(motor, "motor", 2048, NULL, 1, NULL);
 
-    pinMode(BUZZER, OUTPUT);
+    ledcAttachChannel(BUZZER, 100, RESOLUTION, BUZZER_CHANNEL);
+    // ledcAttach(BUZZER, 100, RESOLUTION);
     xTaskCreate(buzz, "buzz", 2048, NULL, 1, NULL);
 
     pinMode(AVOIDANCE1, INPUT);
@@ -286,7 +318,49 @@ void setup() {
 	myservo.setPeriodHertz(50);    // standard 50 hz servo
 	myservo.attach(SERVO, 100, 4000);
     xTaskCreate(servo, "servo", 2048, NULL, 1, NULL);
+
+    mqttClient.enableDebuggingMessages();
+    mqttClient.setURI(server);
+    mqttClient.enableLastWillMessage("lwt", "I am going offline");
+    mqttClient.setKeepAlive(30);
+    WiFi.begin(ssid, pass);
+    WiFi.setHostname("c3test");
+    mqttClient.loopStart();
+    while (WiFi.status() != WL_CONNECTED) {
+        Serial.print('.');
+        delay(1000);
+    }
 }
 
 void loop() {
+}
+
+void onMqttConnect(esp_mqtt_client_handle_t client) {
+    if (mqttClient.isMyTurn(client))  // can be omitted if only one client
+    {
+        mqttClient.subscribe(subscribeTopic, [&](const String &payload) {
+            Serial.println(String(subscribeTopic) + String(": ") + String(payload.c_str()));
+            if (payload == "stop") {
+                control = 0;
+            } else if (payload == "straight") {
+                control = 1;
+            } else if (payload == "reverse") {
+                control = 2;
+            } else if (payload == "left") {
+                control = 3;
+            } else if (payload == "right") {
+                control = 4;
+            } else if (payload == "wave") {
+                wave = 1;
+            } else if (payload == "no_wave") {
+                wave = 0;
+            }
+            check = 10;
+        });
+    }
+}
+
+void handleMQTT(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data) {
+    auto *event = static_cast<esp_mqtt_event_handle_t>(event_data);
+    mqttClient.onEventCallback(event);
 }
