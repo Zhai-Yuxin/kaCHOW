@@ -8,7 +8,10 @@ import tensorflow as tf
 
 from tensorflow.keras import layers
 from tensorflow.keras import models
-from IPython import display
+
+# Constants
+EPOCHS = 10
+DATASET_PATH = 'data/mini_speech_commands'
 
 # Set the seed value for experiment reproducibility.
 seed = 42
@@ -16,7 +19,6 @@ tf.random.set_seed(seed)
 np.random.seed(seed)
 
 # Set dataset path to for preprocessing and feeding into the model 
-DATASET_PATH = 'data/'
 data_dir = pathlib.Path(DATASET_PATH)
 
 # List files for each command
@@ -76,6 +78,9 @@ val_spectrogram_ds = val_spectrogram_ds.cache().prefetch(tf.data.AUTOTUNE)
 test_spectrogram_ds = test_spectrogram_ds.cache().prefetch(tf.data.AUTOTUNE)
 
 # Model
+for example_spectrograms, example_spect_labels in train_spectrogram_ds.take(1):
+  break
+
 input_shape = example_spectrograms.shape[1:]
 print('Input shape:', input_shape)
 num_labels = len(label_names)
@@ -110,7 +115,6 @@ model.compile(
 )
 
 # Train the model over 10 epochs with early stopping
-EPOCHS = 10
 history = model.fit(
     train_spectrogram_ds,
     validation_data=val_spectrogram_ds,
@@ -119,24 +123,59 @@ history = model.fit(
 )
 
 # Plot training, testing accuracies and training, testing losses
-metrics = history.history
-plt.figure(figsize=(16,6))
-plt.subplot(1,2,1)
-plt.plot(history.epoch, metrics['loss'], metrics['val_loss'])
-plt.legend(['loss', 'val_loss'])
-plt.ylim([0, max(plt.ylim())])
-plt.xlabel('Epoch')
-plt.ylabel('Loss [CrossEntropy]')
+def accuracies():
+    metrics = history.history
+    plt.figure(figsize=(16,6))
+    plt.subplot(1,2,1)
+    plt.plot(history.epoch, metrics['loss'], metrics['val_loss'])
+    plt.legend(['loss', 'val_loss'])
+    plt.ylim([0, max(plt.ylim())])
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss [CrossEntropy]')
 
-plt.subplot(1,2,2)
-plt.plot(history.epoch, 100*np.array(metrics['accuracy']), 100*np.array(metrics['val_accuracy']))
-plt.legend(['accuracy', 'val_accuracy'])
-plt.ylim([0, 100])
-plt.xlabel('Epoch')
-plt.ylabel('Accuracy [%]') 
+    plt.subplot(1,2,2)
+    plt.plot(history.epoch, 100*np.array(metrics['accuracy']), 100*np.array(metrics['val_accuracy']))
+    plt.legend(['accuracy', 'val_accuracy'])
+    plt.ylim([0, 100])
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy [%]')
+    plt.savefig('acc.png')
+
+# Plot confusion matrix
+def confusion_matrix():
+    y_pred = model.predict(test_spectrogram_ds)
+    y_pred = tf.argmax(y_pred, axis=1)
+    y_true = tf.concat(list(test_spectrogram_ds.map(lambda s,lab: lab)), axis=0)
+    confusion_mtx = tf.math.confusion_matrix(y_true, y_pred)
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(confusion_mtx,
+                xticklabels=label_names,
+                yticklabels=label_names,
+                annot=True, fmt='g')
+    plt.xlabel('Prediction')
+    plt.ylabel('Label')
+    plt.savefig('cf_matrix.png')
 
 # Evaluate performance of model
 model.evaluate(test_spectrogram_ds, return_dict=True)
 
 # Save model
 model.save('tf_emo_model.keras')
+
+# Test on a sample audio
+def test_sample():
+    x = data_dir/'cry/recording.wav'
+    x = tf.io.read_file(str(x))
+    x, sample_rate = tf.audio.decode_wav(x, desired_channels=1, desired_samples=16000)
+    x = tf.squeeze(x, axis=-1)
+    x = get_spectrogram(x)
+    x = x[tf.newaxis,...]
+
+    prediction = model(x)
+    plt.figure(figsize=(10, 8))
+    plt.bar(label_names, tf.nn.softmax(prediction[0]))
+    plt.savefig('predictions.png')
+
+accuracies()
+confusion_matrix()
+test_sample()
