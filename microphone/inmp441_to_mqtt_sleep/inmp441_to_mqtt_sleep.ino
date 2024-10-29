@@ -19,6 +19,7 @@
 #define TIME_TO_SLEEP  20
 
 #define LEDPIN 13
+#define SOUNDPIN GPIO_NUM_35 // for KY-038
 
 RTC_DATA_ATTR int bootCount = 0;
 
@@ -59,18 +60,21 @@ void setup() {
   Serial.println("Boot number: " + String(bootCount));
   print_wakeup_reason();
 
-  SPIFFSInit();
-  i2sInit();
-  i2s_adc(NULL);
+  // Record voice only if ESP is woken up by touch or by noise
+  if (esp_sleep_get_wakeup_cause() != ESP_SLEEP_WAKEUP_TIMER) {
+    SPIFFSInit();
+    i2sInit();
+    i2s_adc(NULL);
 
-  // Connect to wifi
-  setup_wifi();
+    // Connect to wifi
+    setup_wifi();
 
-  // Connect to MQTT Server
-  connect_mqtt();
+    // Connect to MQTT Server
+    connect_mqtt();
 
-  // Send recording to MQTT Server
-  send_wav_to_mqtt(); 
+    // Send recording to MQTT Server
+    send_wav_to_mqtt(); 
+  }
 
   // Deep sleep
   Serial.println("Going to sleep now");
@@ -84,10 +88,12 @@ void setup() {
   esp_sleep_enable_touchpad_wakeup();;
 
   // Wake up by sound
-  // esp_sleep_enable_ext1_wakeup(
-  //   (1<<GPIO_NUM_32) | (1<<GPIO_NUM_25),
-  //   ESP_EXT1_WAKEUP_ANY_HIGH
-  // );
+  pinMode(SOUNDPIN, INPUT);
+  Serial.println(); 
+  esp_sleep_enable_ext1_wakeup(1ULL << SOUNDPIN, ESP_EXT1_WAKEUP_ANY_HIGH);
+  if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT1) {
+        Serial.println("Woken up by KY-038 sound sensor!");
+  }
 
   Serial.flush();
   esp_deep_sleep_start();
