@@ -32,7 +32,7 @@ const char* ssid = "NUS_STU"; // eduroam SSID
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-const char* mqtt_server = "10.249.6.41";
+const char* mqtt_server = "172.31.38.77";
 const char* mqtt_topic = "voice/wav";
 
 File file;
@@ -62,18 +62,19 @@ void setup() {
   Serial.println("Boot number: " + String(bootCount));
   print_wakeup_reason();
 
+  SPIFFSInit();
+  i2sInit();
+  i2s_adc(NULL);
+  
   // Connect to wifi
   setup_wifi();
   
   // Connect to MQTT Server
   connect_mqtt();
   
-  SPIFFSInit();
-  i2sInit();
-  i2s_adc(NULL);
-  light(300);
-  light(300);
-  
+  // Send recording to MQTT Server
+  send_wav_to_mqtt();
+
   // Deep Sleep
   Serial.println("Going to sleep now");
 
@@ -86,10 +87,10 @@ void setup() {
   esp_sleep_enable_touchpad_wakeup();;
 
   // Wake up by sound
-  esp_sleep_enable_ext1_wakeup(
-    (1<<GPIO_NUM_32) | (1<<GPIO_NUM_25),
-    ESP_EXT1_WAKEUP_ANY_HIGH
-  );
+  // esp_sleep_enable_ext1_wakeup(
+  //   (1<<GPIO_NUM_32) | (1<<GPIO_NUM_25),
+  //   ESP_EXT1_WAKEUP_ANY_HIGH
+  // );
 
   Serial.flush();
   esp_deep_sleep_start();
@@ -207,8 +208,8 @@ void i2s_adc(void *arg) {
     i2s_read(I2S_PORT, (void*) i2s_read_buff, i2s_read_len, &bytes_read, portMAX_DELAY);
     i2s_read(I2S_PORT, (void*) i2s_read_buff, i2s_read_len, &bytes_read, portMAX_DELAY);
     
-    Serial.println(" *** Recording Start *** ");
     light(1500);
+    Serial.println(" *** Recording Start *** ");
     while (flash_wr_size < FLASH_RECORD_SIZE) {
         //read data from I2S bus, in this case, from ADC.
         i2s_read(I2S_PORT, (void*) i2s_read_buff, i2s_read_len, &bytes_read, portMAX_DELAY);
@@ -220,8 +221,9 @@ void i2s_adc(void *arg) {
         printf("Sound recording %u%%\n", flash_wr_size * 100 / FLASH_RECORD_SIZE);
         printf("Never Used Stack Size: %u\n", uxTaskGetStackHighWaterMark(NULL));
     }
+    light(300);
+    light(300);
     file.close();
-    send_wav_to_mqtt();
     free(i2s_read_buff);
     i2s_read_buff = NULL;
     free(flash_write_buff);
@@ -362,4 +364,5 @@ void send_wav_to_mqtt() {
   Serial.println("File sent over to MQTT");
   String message = "stop";
   client.publish("voice/stop", message.c_str());
+  listSPIFFS();
 }
