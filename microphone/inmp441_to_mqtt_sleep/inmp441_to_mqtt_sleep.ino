@@ -24,13 +24,13 @@
 
 RTC_DATA_ATTR int bootCount = 0;
 
-const char* ssid = "S22";
-const char* password = "123456789";
+const char* ssid = "@NRadio-1A76-2.4G";
+const char* password = "84442599";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-const char* mqtt_server = "192.168.87.196";
+const char* mqtt_server = "192.168.66.101";
 const char* mqtt_topic = "voice/wav";
 
 File file;
@@ -60,20 +60,18 @@ void setup() {
   Serial.println("Boot number: " + String(bootCount));
   print_wakeup_reason();
 
-  if (esp_sleep_get_wakeup_cause() != ESP_SLEEP_WAKEUP_TIMER) {
-    SPIFFSInit();
-    i2sInit();
-    i2s_adc();
+  SPIFFSInit();
+  i2sInit();
+  i2s_adc();
 
-    // Connect to wifi
-    setup_wifi();
+  // Connect to wifi
+  setup_wifi();
 
-    // Connect to MQTT Server
-    connect_mqtt();
+  // Connect to MQTT Server
+  connect_mqtt();
 
-    // Send recording to MQTT Server
-    send_wav_to_mqtt();
-  }
+  // Send recording to MQTT Server
+  send_wav_to_mqtt();
 
   // Deep sleep
   Serial.println("Going to sleep now");
@@ -100,7 +98,7 @@ void loop() {
 void setup_wifi() {
   delay(10);
   Serial.println();
-  Serial.print("Connecting to ");
+  Serial.print("Connecting to Wifi: ");
   Serial.println(ssid);
 
   WiFi.begin(ssid, password);
@@ -120,7 +118,7 @@ void touch_isr_handler() {
 }
 
 void connect_mqtt() {
-  Serial.print("Connecting to ");
+  Serial.print("Connecting to MQTT: ");
   Serial.println(mqtt_server);
   client.setServer(mqtt_server, 1883);
   while (client.connect(mqtt_server) == false) {
@@ -302,7 +300,17 @@ void send_wav_to_mqtt() {
 
   file.close();
   Serial.println("File sent over to MQTT");
-  String message = "stop";
-  client.publish("voice/stop", message.c_str());
+
+  if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT1) {
+    String message = "check crying";
+    client.publish("voice/stop", message.c_str());
+  } else if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_TOUCHPAD) {
+    String message = "check voice command";
+    client.publish("voice/stop", message.c_str());
+  } else {
+    String message = "check crying";
+    client.publish("voice/stop", message.c_str());    
+  }
+  
   listSPIFFS();
 }
