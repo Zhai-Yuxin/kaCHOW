@@ -71,12 +71,7 @@ int noteDurations[] = {
   4, 4
 };
 
-//const char *ssid = "HUAWEI P30";
-//const char *pass = "suibianxiafang123";
-//char *server = "mqtt://192.168.43.15:1883";
-
 char *subscribeTopic = "control";
-char *publishTopic = "boo";
 
 void led(void * pvParameters) {
     while (1) {
@@ -366,8 +361,6 @@ void loop() {
 }
  
 void commandCallback(char* topic, byte* payload, unsigned int length) {
-//  payload[length] = '\0';
-//  String message = String((char*)payload);
   String message = "";
   for (int i = 0; i < length; i++) {
       message += (char)payload[i];
