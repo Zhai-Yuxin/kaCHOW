@@ -82,7 +82,7 @@ void setup() {
 
   // Wake up by touch
   touchAttachInterrupt(T5, touch_isr_handler, 50);
-  esp_sleep_enable_touchpad_wakeup();;
+  esp_sleep_enable_touchpad_wakeup();
 
   // Wake up by sound
   pinMode(SOUNDPIN, INPUT);
