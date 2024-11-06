@@ -24,13 +24,13 @@
 
 RTC_DATA_ATTR int bootCount = 0;
 
-const char* ssid = "@NRadio-1A76-2.4G";
-const char* password = "84442599";
+const char* ssid = "S22";
+const char* password = "123456789";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
-
-const char* mqtt_server = "192.168.66.101";
+  
+const char* mqtt_server = "192.168.87.196";
 const char* mqtt_topic = "voice/wav";
 
 File file;

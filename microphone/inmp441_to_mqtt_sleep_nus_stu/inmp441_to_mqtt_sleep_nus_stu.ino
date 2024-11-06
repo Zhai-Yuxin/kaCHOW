@@ -1,9 +1,10 @@
-#include "Arduino.h"
+#include <Arduino.h>
 #include <PubSubClient.h>
 #include <WiFi.h>
 #include <driver/i2s.h>
 #include <SPIFFS.h>
 #include "esp_eap_client.h"
+#include "wav_header.h"
 
 #define I2S_WS 25
 #define I2S_SD 32
@@ -14,7 +15,7 @@
 #define I2S_READ_LEN      16 * 1024
 #define RECORD_TIME       1 //Seconds
 #define I2S_CHANNEL_NUM   1
-#define FLASH_RECORD_SIZE (I2S_CHANNEL_NUM * I2S_SAMPLE_RATE * I2S_SAMPLE_BITS / 8 * RECORD_TIME)
+#define FLASH_RECORD_SIZE (I2S_CHANNEL_NUM * I2S_SAMPLE_RATE * I2S_SAMPLE_BITS / 8 * RECORD_TIME - 2400)
 
 #define NUS_NET_IDENTITY "nusstu\e0957408"  //ie nusstu\e0123456
 #define NUS_NET_USERNAME "e0957408"
@@ -28,12 +29,14 @@
 
 RTC_DATA_ATTR int bootCount = 0;
 
+const int headerSize = 44;
+
 const char* ssid = "NUS_STU"; // eduroam SSID
 
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-const char* mqtt_server = "172.31.38.77";
+const char* mqtt_server = "172.31.39.164";
 const char* mqtt_topic = "voice/wav";
 
 File file;
@@ -58,25 +61,23 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
   pinMode(LEDPIN, OUTPUT);
+
   ++bootCount;
   Serial.println("Boot number: " + String(bootCount));
   print_wakeup_reason();
 
-  // Record voice only if ESP is woken up by touch or by noise
-  if (esp_sleep_get_wakeup_cause() != ESP_SLEEP_WAKEUP_TIMER) {
-    SPIFFSInit();
-    i2sInit();
-    i2s_adc();
+  SPIFFSInit();
+  i2sInit();
+  i2s_adc();
   
-    // Connect to wifi
-    setup_wifi();
-    
-    // Connect to MQTT Server
-    connect_mqtt();
-    
-    // Send recording to MQTT Server
-    send_wav_to_mqtt();
-  }
+  // Connect to wifi
+  setup_wifi();
+  
+  // Connect to MQTT Server
+  connect_mqtt();
+  
+  // Send recording to MQTT Server
+  send_wav_to_mqtt();
 
   // Deep Sleep
   Serial.println("Going to sleep now");
@@ -90,7 +91,7 @@ void setup() {
   esp_sleep_enable_touchpad_wakeup();;
 
   // Wake up by sound
-  pinMode(SOUNDPIN, INPUT); 
+  pinMode(SOUNDPIN, INPUT);
   esp_sleep_enable_ext1_wakeup(1ULL << SOUNDPIN, ESP_EXT1_WAKEUP_ANY_HIGH);
 
   Serial.flush();
@@ -102,7 +103,7 @@ void loop() {
 
 void setup_wifi() {
   WiFi.disconnect(true);
-  Serial.print("Connecting to ");
+  Serial.print("Connecting to Wifi: ");
   Serial.println(ssid);
   WiFi.begin(ssid, WPA2_AUTH_PEAP, NUS_NET_IDENTITY, NUS_NET_USERNAME, NUS_NET_PASSWORD);
   while (WiFi.status() != WL_CONNECTED) {
@@ -120,7 +121,7 @@ void touch_isr_handler() {
 }
 
 void connect_mqtt() {
-  Serial.print("Connecting to ");
+  Serial.print("Connecting to MQTT: ");
   Serial.println(mqtt_server);
   client.setServer(mqtt_server, 1883);
   while (client.connect(mqtt_server) == false) {
@@ -140,6 +141,54 @@ void light(int time) {
   delay(time);                      // wait for a second
   digitalWrite(LEDPIN, LOW);   // turn the LED off by making the voltage LOW
   delay(100); 
+}
+
+void wavHeader(byte* header, int wavSize) {
+  header[0] = 'R';
+  header[1] = 'I';
+  header[2] = 'F';
+  header[3] = 'F';
+  unsigned int fileSize = wavSize + headerSize - 8;
+  header[4] = (byte)(fileSize & 0xFF);
+  header[5] = (byte)((fileSize >> 8) & 0xFF);
+  header[6] = (byte)((fileSize >> 16) & 0xFF);
+  header[7] = (byte)((fileSize >> 24) & 0xFF);
+  header[8] = 'W';
+  header[9] = 'A';
+  header[10] = 'V';
+  header[11] = 'E';
+  header[12] = 'f';
+  header[13] = 'm';
+  header[14] = 't';
+  header[15] = ' ';
+  header[16] = 0x10;
+  header[17] = 0x00;
+  header[18] = 0x00;
+  header[19] = 0x00;
+  header[20] = 0x01;
+  header[21] = 0x00;
+  header[22] = 0x01;
+  header[23] = 0x00;
+  header[24] = 0x80;
+  header[25] = 0x3E;
+  header[26] = 0x00;
+  header[27] = 0x00;
+  header[28] = 0x00;
+  header[29] = 0x7D;
+  header[30] = 0x00;
+  header[31] = 0x00;
+  header[32] = 0x02;
+  header[33] = 0x00;
+  header[34] = 0x10;
+  header[35] = 0x00;
+  header[36] = 'd';
+  header[37] = 'a';
+  header[38] = 't';
+  header[39] = 'a';
+  header[40] = (byte)(wavSize & 0xFF);
+  header[41] = (byte)((wavSize >> 8) & 0xFF);
+  header[42] = (byte)((wavSize >> 16) & 0xFF);
+  header[43] = (byte)((wavSize >> 24) & 0xFF);
 }
 
 void SPIFFSInit() {
@@ -302,7 +351,17 @@ void send_wav_to_mqtt() {
 
   file.close();
   Serial.println("File sent over to MQTT");
-  String message = "stop";
-  client.publish("voice/stop", message.c_str());
+
+  if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT1) {
+    String message = "check crying";
+    client.publish("voice/stop", message.c_str());
+  } else if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_TOUCHPAD) {
+    String message = "check voice command";
+    client.publish("voice/stop", message.c_str());
+  } else {
+    String message = "check crying";
+    client.publish("voice/stop", message.c_str());    
+  }
+
   listSPIFFS();
 }
