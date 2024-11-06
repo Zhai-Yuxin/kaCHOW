@@ -45,6 +45,10 @@ def squeeze(audio, labels):
 train_ds = train_ds.map(squeeze, tf.data.AUTOTUNE)
 val_ds = val_ds.map(squeeze, tf.data.AUTOTUNE)
 
+for example_audio, example_labels in train_ds.take(1):  
+  print(example_audio.shape)
+  print(example_labels.shape)
+
 # Store a portion of the dataset as a test set
 test_ds = val_ds.shard(num_shards=2, index=0)
 val_ds = val_ds.shard(num_shards=2, index=1)
@@ -61,6 +65,36 @@ def get_spectrogram(waveform):
   # shape (`batch_size`, `height`, `width`, `channels`).
   spectrogram = spectrogram[..., tf.newaxis]
   return spectrogram
+
+# Plot Spectrograms
+def plot_spectrogram(spectrogram, ax):
+  if len(spectrogram.shape) > 2:
+    assert len(spectrogram.shape) == 3
+    spectrogram = np.squeeze(spectrogram, axis=-1)
+  # Convert the frequencies to log scale and transpose, so that the time is
+  # represented on the x-axis (columns).
+  # Add an epsilon to avoid taking a log of zero.
+  log_spec = np.log(spectrogram.T + np.finfo(float).eps)
+  height = log_spec.shape[0]
+  width = log_spec.shape[1]
+  X = np.linspace(0, np.size(spectrogram), num=width, dtype=int)
+  Y = range(height)
+  ax.pcolormesh(X, Y, log_spec)
+
+label = label_names[example_labels[0]]
+waveform = example_audio[0]
+spectrogram = get_spectrogram(waveform)
+
+fig, axes = plt.subplots(2, figsize=(12, 8))
+timescale = np.arange(waveform.shape[0])
+axes[0].plot(timescale, waveform.numpy())
+axes[0].set_title('Waveform')
+axes[0].set_xlim([0, 16000])
+
+plot_spectrogram(spectrogram.numpy(), axes[1])
+axes[1].set_title('Spectrogram')
+plt.suptitle(label.title())
+plt.savefig("graphs/voice_commmand/spectrogram.png")
 
 # Create spectrogram datasets from audio dataset
 def make_spec_ds(ds):
@@ -139,7 +173,7 @@ def accuracies():
     plt.ylim([0, 100])
     plt.xlabel('Epoch')
     plt.ylabel('Accuracy [%]')
-    plt.savefig('acc.png')
+    plt.savefig('graphs/voice_commmand/acc.png')
 
 # Plot confusion matrix
 def confusion_matrix():
@@ -154,17 +188,17 @@ def confusion_matrix():
                 annot=True, fmt='g')
     plt.xlabel('Prediction')
     plt.ylabel('Label')
-    plt.savefig('cf_matrix.png')
+    plt.savefig('graphs/voice_commmand/cf_matrix.png')
 
 # Evaluate performance of model
 model.evaluate(test_spectrogram_ds, return_dict=True)
 
 # Save model
-model.save('voice_command_model.keras')
+model.save('voice_command_mode.keras')
 
 # Test on a sample audio
 def test_sample():
-    x = data_dir/'go/recording.wav'
+    x = data_dir/'stop/stop_nixon.wav'
     x = tf.io.read_file(str(x))
     x, sample_rate = tf.audio.decode_wav(x, desired_channels=1, desired_samples=16000)
     x = tf.squeeze(x, axis=-1)
@@ -174,7 +208,7 @@ def test_sample():
     prediction = model(x)
     plt.figure(figsize=(10, 8))
     plt.bar(label_names, tf.nn.softmax(prediction[0]))
-    plt.savefig('predictions.png')
+    plt.savefig('graphs/voice_commmand/predictions.png')
 
 accuracies()
 confusion_matrix()
