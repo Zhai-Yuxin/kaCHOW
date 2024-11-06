@@ -13,7 +13,7 @@ import boto3
 
 DATASET_PATH = 'Sounds'
 
-voice_command_classes = ('backward', 'go', 'left', 'right', 'stop', 'none') # 6 classes
+voice_command_classes = ('backward', 'go', 'left', 'none', 'right', 'stop') # 6 classes
 emo_classes = ('cry', 'none') # 2 classes
 
 voice_command_model = load_model('voice_command_model.keras')
