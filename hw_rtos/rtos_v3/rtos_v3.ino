@@ -42,6 +42,9 @@ volatile bool back_obstacle = 0;
 volatile bool wave = 0;
 volatile int check = 10;
 
+const char* ssid = "JQ";
+const char* password = "sybellaaa";
+
 LiquidCrystal_I2C lcd(0x27,16,2);
 
 WiFiClientSecure espClient = WiFiClientSecure();
@@ -138,45 +141,45 @@ void motor(void * pvParameters) {
             ledcWriteChannel(MOTOR2_CHANNEL_B, 0);
             vTaskDelay(500 / portTICK_PERIOD_MS); 
         } else if (control == 1) {
-            ledcWriteChannel(MOTOR1_CHANNEL_A, 120);
+            ledcWriteChannel(MOTOR1_CHANNEL_A, 220);
             ledcWriteChannel(MOTOR1_CHANNEL_B, 0);
-            ledcWriteChannel(MOTOR2_CHANNEL_A, 120);
+            ledcWriteChannel(MOTOR2_CHANNEL_A, 230);
             ledcWriteChannel(MOTOR2_CHANNEL_B, 0);
             if (check > 0) {
-                vTaskDelay(500 / portTICK_PERIOD_MS); 
+                vTaskDelay(200 / portTICK_PERIOD_MS); 
                 check = check - 1;
             } else {
                 control = 0;
             }
         } else if (control == 2) {
             ledcWriteChannel(MOTOR1_CHANNEL_A, 0);
-            ledcWriteChannel(MOTOR1_CHANNEL_B, 120);
+            ledcWriteChannel(MOTOR1_CHANNEL_B, 230);
             ledcWriteChannel(MOTOR2_CHANNEL_A, 0);
-            ledcWriteChannel(MOTOR2_CHANNEL_B, 120);
+            ledcWriteChannel(MOTOR2_CHANNEL_B, 220);
             if (check > 0) {
-                vTaskDelay(500 / portTICK_PERIOD_MS); 
+                vTaskDelay(200 / portTICK_PERIOD_MS); 
                 check = check - 1;
             } else {
                 control = 0;
             }
         } else if (control == 3) {
-            ledcWriteChannel(MOTOR1_CHANNEL_A, 80);
+            ledcWriteChannel(MOTOR1_CHANNEL_A, 190);
             ledcWriteChannel(MOTOR1_CHANNEL_B, 0);
-            ledcWriteChannel(MOTOR2_CHANNEL_A, 120);
+            ledcWriteChannel(MOTOR2_CHANNEL_A, 230);
             ledcWriteChannel(MOTOR2_CHANNEL_B, 0);
             if (check > 0) {
-                vTaskDelay(500 / portTICK_PERIOD_MS); 
+                vTaskDelay(200 / portTICK_PERIOD_MS); 
                 check = check - 1;
             } else {
                 control = 0;
             }
         } else if (control == 4) {
-            ledcWriteChannel(MOTOR1_CHANNEL_A, 120);
+            ledcWriteChannel(MOTOR1_CHANNEL_A, 230);
             ledcWriteChannel(MOTOR1_CHANNEL_B, 0);
-            ledcWriteChannel(MOTOR2_CHANNEL_A, 80);
+            ledcWriteChannel(MOTOR2_CHANNEL_A, 190);
             ledcWriteChannel(MOTOR2_CHANNEL_B, 0);
             if (check > 0) {
-                vTaskDelay(500 / portTICK_PERIOD_MS); 
+                vTaskDelay(200 / portTICK_PERIOD_MS); 
                 check = check - 1;
             } else {
                 control = 0;
@@ -220,7 +223,7 @@ void avoidance(void * pvParameters) {
         } else {
             back_obstacle = 0;
         }
-        vTaskDelay(500 / portTICK_PERIOD_MS); 
+        vTaskDelay(200 / portTICK_PERIOD_MS); 
     }
 }
 
@@ -324,7 +327,7 @@ void setup() {
 
   
   WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  WiFi.begin(ssid, password);
   Serial.println("Connecting to Wi-Fi");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
