@@ -10,8 +10,8 @@ from tensorflow.keras import layers
 from tensorflow.keras import models
 
 # Constants
-EPOCHS = 10
-DATASET_PATH = 'emodata/'
+EPOCHS = 15
+DATASET_PATH = 'data/voice_commands'
 
 # Set the seed value for experiment reproducibility.
 seed = 42
@@ -29,7 +29,7 @@ commands = commands[(commands != 'README.md') & (commands != '.DS_Store')]
 # Padded shorter files and trimemed longer files to 1 seconds for easier batching  
 train_ds, val_ds = tf.keras.utils.audio_dataset_from_directory(
     directory=data_dir,
-    batch_size=16,
+    batch_size=64,
     validation_split=0.2,
     seed=0,
     output_sequence_length=16000,
@@ -94,7 +94,7 @@ axes[0].set_xlim([0, 16000])
 plot_spectrogram(spectrogram.numpy(), axes[1])
 axes[1].set_title('Spectrogram')
 plt.suptitle(label.title())
-plt.savefig("graphs/emo/spectrogram.png")
+plt.savefig("graphs/voice_commmand/spectrogram.png")
 
 # Create spectrogram datasets from audio dataset
 def make_spec_ds(ds):
@@ -173,7 +173,7 @@ def accuracies():
     plt.ylim([0, 100])
     plt.xlabel('Epoch')
     plt.ylabel('Accuracy [%]')
-    plt.savefig('graphs/emo/acc.png')
+    plt.savefig('graphs/voice_commmand/acc.png')
 
 # Plot confusion matrix
 def confusion_matrix():
@@ -188,17 +188,17 @@ def confusion_matrix():
                 annot=True, fmt='g')
     plt.xlabel('Prediction')
     plt.ylabel('Label')
-    plt.savefig('graphs/emo/cf_matrix.png')
+    plt.savefig('graphs/voice_commmand/cf_matrix.png')
 
 # Evaluate performance of model
-print(model.evaluate(test_spectrogram_ds, return_dict=True))
+model.evaluate(test_spectrogram_ds, return_dict=True)
 
 # Save model
-model.save('emo_model_2.keras')
+model.save('voice_command_mode.keras')
 
 # Test on a sample audio
 def test_sample():
-    x = data_dir/'cry/FF482278-24C9-4FB0-A7BE-FD92D1FE17B4-1430028319-1.0-m-26-hu.wav'
+    x = data_dir/'stop/stop_nixon.wav'
     x = tf.io.read_file(str(x))
     x, sample_rate = tf.audio.decode_wav(x, desired_channels=1, desired_samples=16000)
     x = tf.squeeze(x, axis=-1)
@@ -208,7 +208,7 @@ def test_sample():
     prediction = model(x)
     plt.figure(figsize=(10, 8))
     plt.bar(label_names, tf.nn.softmax(prediction[0]))
-    plt.savefig('graphs/emo/predictions.png')
+    plt.savefig('graphs/voice_commmand/predictions.png')
 
 accuracies()
 confusion_matrix()

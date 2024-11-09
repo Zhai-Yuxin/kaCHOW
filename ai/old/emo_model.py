@@ -10,8 +10,8 @@ from tensorflow.keras import layers
 from tensorflow.keras import models
 
 # Constants
-EPOCHS = 10
-DATASET_PATH = 'emodata/'
+EPOCHS = 15
+DATASET_PATH = 'data/emo'
 
 # Set the seed value for experiment reproducibility.
 seed = 42
@@ -29,7 +29,7 @@ commands = commands[(commands != 'README.md') & (commands != '.DS_Store')]
 # Padded shorter files and trimemed longer files to 1 seconds for easier batching  
 train_ds, val_ds = tf.keras.utils.audio_dataset_from_directory(
     directory=data_dir,
-    batch_size=16,
+    batch_size=64,
     validation_split=0.2,
     seed=0,
     output_sequence_length=16000,
@@ -191,10 +191,10 @@ def confusion_matrix():
     plt.savefig('graphs/emo/cf_matrix.png')
 
 # Evaluate performance of model
-print(model.evaluate(test_spectrogram_ds, return_dict=True))
+model.evaluate(test_spectrogram_ds, return_dict=True)
 
 # Save model
-model.save('emo_model_2.keras')
+model.save('emo_model.keras')
 
 # Test on a sample audio
 def test_sample():

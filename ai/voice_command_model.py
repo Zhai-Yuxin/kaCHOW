@@ -11,7 +11,9 @@ from tensorflow.keras import models
 
 # Constants
 EPOCHS = 15
-DATASET_PATH = 'data/voice_commands'
+TRAINING_DATASET_PATH = 'data/train'
+VALIDATION_DATASET_PATH = "data/validation"
+TESTING_DATASET_PATH = 'data/testing'
 
 # Set the seed value for experiment reproducibility.
 seed = 42
@@ -19,21 +21,27 @@ tf.random.set_seed(seed)
 np.random.seed(seed)
 
 # Set dataset path to for preprocessing and feeding into the model 
-data_dir = pathlib.Path(DATASET_PATH)
+train_data_dir = pathlib.Path(TRAINING_DATASET_PATH)
+val_data_dir = pathlib.Path(VALIDATION_DATASET_PATH)
+test_data_dir = pathlib.Path(TESTING_DATASET_PATH)
 
 # List files for each command
-commands = np.array(tf.io.gfile.listdir(str(data_dir)))
+commands = np.array(tf.io.gfile.listdir(str(train_data_dir)))
 commands = commands[(commands != 'README.md') & (commands != '.DS_Store')]
 
 # Load the data. Audio files are mostly 16 kHz. 
 # Padded shorter files and trimemed longer files to 1 seconds for easier batching  
-train_ds, val_ds = tf.keras.utils.audio_dataset_from_directory(
-    directory=data_dir,
+train_ds = tf.keras.utils.audio_dataset_from_directory(
+    directory=train_data_dir,
     batch_size=64,
-    validation_split=0.2,
     seed=0,
-    output_sequence_length=16000,
-    subset='both')
+    output_sequence_length=16000)
+
+val_ds = tf.keras.utils.audio_dataset_from_directory(
+    directory=val_data_dir,
+    batch_size=64,
+    seed=0,
+    output_sequence_length=16000)
 
 label_names = np.array(train_ds.class_names)
 
@@ -94,7 +102,7 @@ axes[0].set_xlim([0, 16000])
 plot_spectrogram(spectrogram.numpy(), axes[1])
 axes[1].set_title('Spectrogram')
 plt.suptitle(label.title())
-plt.savefig("graphs/voice_commmand/spectrogram.png")
+plt.savefig("graphs/voice_command/spectrogram.png")
 
 # Create spectrogram datasets from audio dataset
 def make_spec_ds(ds):
@@ -173,7 +181,7 @@ def accuracies():
     plt.ylim([0, 100])
     plt.xlabel('Epoch')
     plt.ylabel('Accuracy [%]')
-    plt.savefig('graphs/voice_commmand/acc.png')
+    plt.savefig('graphs/voice_command/acc.png')
 
 # Plot confusion matrix
 def confusion_matrix():
@@ -188,17 +196,17 @@ def confusion_matrix():
                 annot=True, fmt='g')
     plt.xlabel('Prediction')
     plt.ylabel('Label')
-    plt.savefig('graphs/voice_commmand/cf_matrix.png')
+    plt.savefig('graphs/voice_command/cf_matrix.png')
 
 # Evaluate performance of model
-model.evaluate(test_spectrogram_ds, return_dict=True)
+print(model.evaluate(test_spectrogram_ds, return_dict=True))
 
 # Save model
-model.save('voice_command_mode.keras')
+model.save('voice_command_model_with_silence_and_bg.keras')
 
 # Test on a sample audio
 def test_sample():
-    x = data_dir/'stop/stop_nixon.wav'
+    x = test_data_dir/'stop/0c40e715_nohash_0.wav'
     x = tf.io.read_file(str(x))
     x, sample_rate = tf.audio.decode_wav(x, desired_channels=1, desired_samples=16000)
     x = tf.squeeze(x, axis=-1)
@@ -208,7 +216,7 @@ def test_sample():
     prediction = model(x)
     plt.figure(figsize=(10, 8))
     plt.bar(label_names, tf.nn.softmax(prediction[0]))
-    plt.savefig('graphs/voice_commmand/predictions.png')
+    plt.savefig('graphs/voice_command/predictions.png')
 
 accuracies()
 confusion_matrix()
