@@ -13,11 +13,11 @@ import boto3
 
 DATASET_PATH = 'Sounds'
 
-voice_command_classes = ('backward', 'go', 'left', 'none', 'right', 'stop') # 6 classes
-emo_classes = ('cry', 'none') # 2 classes
+voice_command_classes = ('backward', 'go', 'left', 'right', 'silence', 'stop', 'unknown')
+emo_classes = ('cry', 'silence')
 
-voice_command_model = load_model('voice_command_model.keras')
-emo_model = load_model('emo_model.keras')
+voice_command_model = load_model('voice_command_model_with_silence_and_bg.keras')
+emo_model = load_model('emo_model_with_silence.keras')
 
 dynamodb = boto3.resource('dynamodb') 
 table = dynamodb.Table('kachow_test') 
