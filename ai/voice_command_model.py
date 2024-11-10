@@ -181,7 +181,7 @@ def accuracies():
     plt.ylim([0, 100])
     plt.xlabel('Epoch')
     plt.ylabel('Accuracy [%]')
-    plt.savefig('graphs/voice_command/acc.png')
+    # plt.savefig('graphs/voice_command/acc.png')
 
 # Plot confusion matrix
 def confusion_matrix():
@@ -199,7 +199,9 @@ def confusion_matrix():
     plt.savefig('graphs/voice_command/cf_matrix.png')
 
 # Evaluate performance of model
-print(model.evaluate(test_spectrogram_ds, return_dict=True))
+print("Evaluating model")
+evaluation = model.evaluate(test_spectrogram_ds, return_dict=True) 
+print(f"Accuracy: {evaluation['accuracy']}, Loss: {evaluation['loss']}")
 
 # Save model
 model.save('voice_command_model_with_silence_and_bg.keras')

@@ -191,10 +191,12 @@ def confusion_matrix():
     plt.savefig('graphs/emo/cf_matrix.png')
 
 # Evaluate performance of model
-print(model.evaluate(test_spectrogram_ds, return_dict=True))
+print("Evaluating model")
+evaluation = model.evaluate(test_spectrogram_ds, return_dict=True) 
+print(f"Accuracy: {evaluation['accuracy']}, Loss: {evaluation['loss']}")
 
 # Save model
-model.save('emo_model_2.keras')
+model.save('emo_model_with_silence.keras')
 
 # Test on a sample audio
 def test_sample():
