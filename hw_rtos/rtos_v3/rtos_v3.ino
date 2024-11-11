@@ -3,9 +3,8 @@
 #include <PubSubClient.h>
 #include "pitches.h"
 #include <LiquidCrystal_I2C.h>
+#include <ArduinoJson.h>
 #include <WiFi.h>
-//#include "ESP32MQTTClient.h"
-//#include "esp_eap_client.h"
 
 #define LED1 12
 #define LED2 13
@@ -21,7 +20,7 @@
 #define MOTOR2_IN3 16
 #define MOTOR2_IN4 17
 #define MOTOR1_CHANNEL_A 0  // PWM channel for forward direction
-#define MOTOR1_CHANNEL_B 1  // PWM channel for reverse direction
+#define MOTOR1_CHANNEL_B 1  // PWM channel for reverse direction  
 #define MOTOR2_CHANNEL_A 2  // PWM channel for forward direction
 #define MOTOR2_CHANNEL_B 3  // PWM channel for reverse direction
 #define MOTOR_FREQ 5000     // PWM frequency
@@ -51,6 +50,8 @@ PubSubClient client(espClient);
 volatile int pos = 0;
 volatile int change = 10;
 
+volatile unsigned long start_time = 0;
+
 int melody[] = {
   NOTE_E5, NOTE_E5, NOTE_E5,
   NOTE_E5, NOTE_E5, NOTE_E5,
@@ -77,7 +78,8 @@ int melody_durations[] = {
 int front_alert = NOTE_G5;
 int back_alert = NOTE_E5;
 
-char *subscribeTopic = "control";
+char *subscribeTopic = "kachow/control";
+char *publishTopic = "kachow/interrupt";
 
 void led(void * pvParameters) {
     while (1) {
@@ -271,19 +273,19 @@ void avoidance1(void * pvParameters) {
                 control = 0;
             }
             if (front_obstacle == 0) {
-//                while (!mqttClient.publish(publishTopic, "front obstacle detected", 0, false)){
-//                    Serial.print('.');
-//                    delay(100);
-//                }
+                while (!publishMessage("front obstacle detected")){
+                    Serial.print('.');
+                    vTaskDelay(100 / portTICK_PERIOD_MS); 
+                }
             }
             front_obstacle = 1;
         } else {
             front_buzz = 0;
             if (front_obstacle == 1) {
-//                while (!mqttClient.publish(publishTopic, "front obstacle cleared", 0, false)){
-//                    Serial.print('.');
-//                    delay(100);
-//                }
+                while (!publishMessage("front obstacle cleared")){
+                    Serial.print('.');
+                    vTaskDelay(100 / portTICK_PERIOD_MS); 
+                }
             }
             front_obstacle = 0;
         }
@@ -300,25 +302,48 @@ void avoidance2(void * pvParameters) {
                 control = 0;
             }
             if (back_obstacle == 0) {
-//                while (!mqttClient.publish(publishTopic, "back obstacle detected", 0, false)){
-//                    Serial.print('.');
-//                    delay(100);
-//                }
+                while (!publishMessage("back obstacle detected")){
+                    Serial.print('.');
+                    vTaskDelay(100 / portTICK_PERIOD_MS); 
+                }
             }
             back_obstacle = 1;
         } else {
             back_buzz = 0;
             if (back_obstacle == 1) {
-//                while (!mqttClient.publish(publishTopic, "back obstacle cleared", 0, false)){
-//                    Serial.print('.');
-//                    delay(100);
-//                }
+                while (!publishMessage("back obstacle cleared")){
+                    Serial.print('.');
+                    vTaskDelay(100 / portTICK_PERIOD_MS); 
+                }
             }
             back_obstacle = 0;
         }
         vTaskDelay(300 / portTICK_PERIOD_MS); 
     }
 }
+
+bool publishMessage(const String& message) {
+    StaticJsonDocument<1024> pubMsg;
+    pubMsg["interrupt"] = message;
+    String payload;
+    serializeJson(pubMsg, payload);
+    if (!client.connected()) {
+    Serial.println("MQTT Disconnected, trying to reconnect...");
+    if (!client.connect(THINGNAME)) {
+        Serial.println("Failed to reconnect, retrying in 1 second...");
+        vTaskDelay(1000 / portTICK_PERIOD_MS); 
+        return false;
+    }
+  }
+
+  if (client.publish(publishTopic, payload.c_str())) {
+    return true;
+  } else {
+    Serial.println("Failed to publish message.");
+    return false;
+  }
+}
+
 
 void display(void * pvParameters) {
     while (1) {
@@ -344,11 +369,21 @@ void display(void * pvParameters) {
 void servo(void * pvParameters) {
     while (1) {
         if (wave) {
-            int dutyCycle = map(pos, 0, 180, 1638, 7864);
-            ledcWriteChannel(SERVO_CHANNEL, dutyCycle);
-            change = (pos<0)? 10 : ((pos>180)? -10: change);
-            pos += change;
-            vTaskDelay(50 / portTICK_PERIOD_MS);
+            unsigned long curr_time = millis();
+            if (curr_time - start_time < 4000) {
+                int dutyCycle = map(pos, 0, 180, 1638, 7864);
+                ledcWriteChannel(SERVO_CHANNEL, dutyCycle);
+                change = (pos<0)? 10 : ((pos>180)? -10: change);
+                pos += change;
+                vTaskDelay(50 / portTICK_PERIOD_MS);
+            } else {
+                wave = 0;
+            }
+            // int dutyCycle = map(pos, 0, 180, 1638, 7864);
+            // ledcWriteChannel(SERVO_CHANNEL, dutyCycle);
+            // change = (pos<0)? 10 : ((pos>180)? -10: change);
+            // pos += change;
+            // vTaskDelay(50 / portTICK_PERIOD_MS);
         } else {
             vTaskDelay(1000 / portTICK_PERIOD_MS); 
         }
@@ -375,16 +410,16 @@ void serial(void * pvParameters){
                 control = 4;
             } else if (input == "wave") {
                 wave = 1;
-            } else if (input == "no_wave") {
+                start_time = millis();
+            } else if (input == "nowave") {
                 wave = 0;
-            }else if (input == "music") {
+            } else if (input == "music") {
                 music = 1;
+            } else if (input == "obstacle") {
+                front_obstacle = 1;
+            } else if (input == "no_obstacle") {
+                front_obstacle = 0;
             }
-            // } else if (input == "obstacle") {
-            //     front_obstacle = 1;
-            // } else if (input == "no_obstacle") {
-            //     front_obstacle = 0;
-            // }
             Serial.println("control="+String(control)+" ; wave="+String(wave)+" ; music="+String(music)); 
           } else {
             vTaskDelay(1000 / portTICK_PERIOD_MS); 
@@ -415,9 +450,9 @@ void setup() {
   xTaskCreate(buzz, "buzz", 2048, NULL, 1, NULL);
 
   pinMode(AVOIDANCE1, INPUT);
-  xTaskCreate(avoidance1, "avoidance1", 2048, NULL, 1, NULL);
+  xTaskCreate(avoidance1, "avoidance1", 4096, NULL, 1, NULL);
   pinMode(AVOIDANCE2, INPUT);
-  xTaskCreate(avoidance2, "avoidance2", 2048, NULL, 1, NULL);
+  xTaskCreate(avoidance2, "avoidance2", 4096, NULL, 1, NULL);
 
   lcd.init();
   lcd.backlight();
@@ -431,7 +466,7 @@ void setup() {
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.println("Connecting to Wi-Fi");
   while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
+    vTaskDelay(500 / portTICK_PERIOD_MS); 
     Serial.print(".");
   }
   Serial.println("");
@@ -446,7 +481,7 @@ void setup() {
 
   while (!client.connect(THINGNAME)) {
     Serial.print(".");
-    delay(1000);
+    vTaskDelay(1000 / portTICK_PERIOD_MS); 
   }
   if (!client.connected()) {
     Serial.println("AWS IoT Timeout!");
@@ -489,10 +524,10 @@ void commandCallback(char* topic, byte* payload, unsigned int length) {
       check = 10;
   } else if (message == "wave") {
       wave = 1;
+      start_time = millis();
   } else if (message == "nowave") {
       wave = 0;
   } else if (message == "music") {
       music = 1;
   }
-  check = 10;
 }
