@@ -30,7 +30,7 @@ commands = commands[(commands != 'README.md') & (commands != '.DS_Store')]
 train_ds, val_ds = tf.keras.utils.audio_dataset_from_directory(
     directory=data_dir,
     batch_size=16,
-    validation_split=0.2,
+    validation_split=0.3,
     seed=0,
     output_sequence_length=16000,
     subset='both')
