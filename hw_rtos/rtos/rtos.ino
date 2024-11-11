@@ -45,6 +45,8 @@ LiquidCrystal_I2C lcd(0x27,16,2);
 volatile int pos = 0;
 volatile int change = 10;
 
+volatile unsigned long start_time = 0;
+
 int melody[] = {
   NOTE_E5, NOTE_E5, NOTE_E5,
   NOTE_E5, NOTE_E5, NOTE_E5,
@@ -348,11 +350,21 @@ void display(void * pvParameters) {
 void servo(void * pvParameters) {
     while (1) {
         if (wave) {
-            int dutyCycle = map(pos, 0, 180, 1638, 7864);
-            ledcWriteChannel(SERVO_CHANNEL, dutyCycle);
-            change = (pos<0)? 10 : ((pos>180)? -10: change);
-            pos += change;
-            vTaskDelay(50 / portTICK_PERIOD_MS);
+            unsigned long curr_time = millis();
+            if (curr_time - start_time < 4000) {
+                int dutyCycle = map(pos, 0, 180, 1638, 7864);
+                ledcWriteChannel(SERVO_CHANNEL, dutyCycle);
+                change = (pos<0)? 10 : ((pos>180)? -10: change);
+                pos += change;
+                vTaskDelay(50 / portTICK_PERIOD_MS);
+            } else {
+                wave = 0;
+            }
+            // int dutyCycle = map(pos, 0, 180, 1638, 7864);
+            // ledcWriteChannel(SERVO_CHANNEL, dutyCycle);
+            // change = (pos<0)? 10 : ((pos>180)? -10: change);
+            // pos += change;
+            // vTaskDelay(50 / portTICK_PERIOD_MS);
         } else {
             vTaskDelay(1000 / portTICK_PERIOD_MS); 
         }
@@ -383,8 +395,9 @@ void serial(void * pvParameters){
                 check = 10;
             } else if (input == "wave") {
                 wave = 1;
-            } else if (input == "unwave") {
-                wave = 0;
+                start_time = millis();
+            // } else if (input == "unwave") {
+            //     wave = 0;
             } else if (input == "music") {
                 music = 1;
             }
