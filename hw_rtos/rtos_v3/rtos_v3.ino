@@ -13,8 +13,8 @@
 #define LED5 25
 #define BUZZER 14
 #define BUZZER_CHANNEL 10
-#define AVOIDANCE1 26
-#define AVOIDANCE2 27
+#define AVOIDANCE1 27
+#define AVOIDANCE2 26
 #define MOTOR1_IN1 18
 #define MOTOR1_IN2 19
 #define MOTOR2_IN3 16
@@ -182,45 +182,45 @@ void motor(void * pvParameters) {
             ledcWriteChannel(MOTOR2_CHANNEL_B, 0);
             vTaskDelay(500 / portTICK_PERIOD_MS); 
         } else if (control == 1) {
-            ledcWriteChannel(MOTOR1_CHANNEL_A, 220);
+            ledcWriteChannel(MOTOR1_CHANNEL_A, 225);
             ledcWriteChannel(MOTOR1_CHANNEL_B, 0);
-            ledcWriteChannel(MOTOR2_CHANNEL_A, 230);
+            ledcWriteChannel(MOTOR2_CHANNEL_A, 220);
             ledcWriteChannel(MOTOR2_CHANNEL_B, 0);
             if (check > 0) {
-                vTaskDelay(300 / portTICK_PERIOD_MS); 
+                vTaskDelay(200 / portTICK_PERIOD_MS); 
                 check = check - 1;
             } else {
                 control = 0;
             }
         } else if (control == 2) {
             ledcWriteChannel(MOTOR1_CHANNEL_A, 0);
-            ledcWriteChannel(MOTOR1_CHANNEL_B, 230);
+            ledcWriteChannel(MOTOR1_CHANNEL_B, 225);
             ledcWriteChannel(MOTOR2_CHANNEL_A, 0);
             ledcWriteChannel(MOTOR2_CHANNEL_B, 220);
             if (check > 0) {
-                vTaskDelay(300 / portTICK_PERIOD_MS); 
+                vTaskDelay(200 / portTICK_PERIOD_MS); 
                 check = check - 1;
             } else {
                 control = 0;
             }
         } else if (control == 3) {
-            ledcWriteChannel(MOTOR1_CHANNEL_A, 190);
+            ledcWriteChannel(MOTOR1_CHANNEL_A, 170);
             ledcWriteChannel(MOTOR1_CHANNEL_B, 0);
-            ledcWriteChannel(MOTOR2_CHANNEL_A, 230);
+            ledcWriteChannel(MOTOR2_CHANNEL_A, 220);
             ledcWriteChannel(MOTOR2_CHANNEL_B, 0);
             if (check > 0) {
-                vTaskDelay(300 / portTICK_PERIOD_MS); 
+                vTaskDelay(200 / portTICK_PERIOD_MS); 
                 check = check - 1;
             } else {
                 control = 0;
             }
         } else if (control == 4) {
-            ledcWriteChannel(MOTOR1_CHANNEL_A, 230);
+            ledcWriteChannel(MOTOR1_CHANNEL_A, 220);
             ledcWriteChannel(MOTOR1_CHANNEL_B, 0);
-            ledcWriteChannel(MOTOR2_CHANNEL_A, 190);
+            ledcWriteChannel(MOTOR2_CHANNEL_A, 170);
             ledcWriteChannel(MOTOR2_CHANNEL_B, 0);
             if (check > 0) {
-                vTaskDelay(300 / portTICK_PERIOD_MS); 
+                vTaskDelay(200 / portTICK_PERIOD_MS); 
                 check = check - 1;
             } else {
                 control = 0;
@@ -270,12 +270,15 @@ void avoidance1(void * pvParameters) {
         if (!obstacle) {
             front_buzz = 1;
             if (control != 2) {
-                control = 0;
+              ledcWriteChannel(MOTOR1_CHANNEL_A, 0);
+              ledcWriteChannel(MOTOR1_CHANNEL_B, 0);
+              ledcWriteChannel(MOTOR2_CHANNEL_A, 0);
+              ledcWriteChannel(MOTOR2_CHANNEL_B, 0);
+              control = 0;
             }
             if (front_obstacle == 0) {
                 while (!publishMessage("front obstacle detected")){
-                    Serial.print('.');
-                    vTaskDelay(100 / portTICK_PERIOD_MS); 
+                    vTaskDelay(10 / portTICK_PERIOD_MS); 
                 }
             }
             front_obstacle = 1;
@@ -283,13 +286,12 @@ void avoidance1(void * pvParameters) {
             front_buzz = 0;
             if (front_obstacle == 1) {
                 while (!publishMessage("front obstacle cleared")){
-                    Serial.print('.');
                     vTaskDelay(100 / portTICK_PERIOD_MS); 
                 }
             }
             front_obstacle = 0;
         }
-        vTaskDelay(300 / portTICK_PERIOD_MS); 
+        vTaskDelay(100 / portTICK_PERIOD_MS); 
     }
 }
 
@@ -299,11 +301,14 @@ void avoidance2(void * pvParameters) {
         if (!obstacle) {
             back_buzz = 1;
             if (control == 2) {
-                control = 0;
+              ledcWriteChannel(MOTOR1_CHANNEL_A, 0);
+              ledcWriteChannel(MOTOR1_CHANNEL_B, 0);
+              ledcWriteChannel(MOTOR2_CHANNEL_A, 0);
+              ledcWriteChannel(MOTOR2_CHANNEL_B, 0);
+              control = 0;
             }
             if (back_obstacle == 0) {
                 while (!publishMessage("back obstacle detected")){
-                    Serial.print('.');
                     vTaskDelay(100 / portTICK_PERIOD_MS); 
                 }
             }
@@ -312,13 +317,12 @@ void avoidance2(void * pvParameters) {
             back_buzz = 0;
             if (back_obstacle == 1) {
                 while (!publishMessage("back obstacle cleared")){
-                    Serial.print('.');
                     vTaskDelay(100 / portTICK_PERIOD_MS); 
                 }
             }
             back_obstacle = 0;
         }
-        vTaskDelay(300 / portTICK_PERIOD_MS); 
+        vTaskDelay(100 / portTICK_PERIOD_MS); 
     }
 }
 
@@ -526,7 +530,7 @@ void commandCallback(char* topic, byte* payload, unsigned int length) {
       wave = 1;
       start_time = millis();
   } else if (message == "nowave") {
-      wave = 0;
+      wave = 0;  
   } else if (message == "music") {
       music = 1;
   }
