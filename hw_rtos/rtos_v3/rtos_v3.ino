@@ -13,7 +13,7 @@
 #define LED4 33
 #define LED5 25
 #define BUZZER 14
-#define BUZZER_CHANNEL 4
+#define BUZZER_CHANNEL 10
 #define AVOIDANCE1 26
 #define AVOIDANCE2 27
 #define MOTOR1_IN1 18
