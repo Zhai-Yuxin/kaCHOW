@@ -276,7 +276,7 @@ void avoidance1(void * pvParameters) {
                 Serial.println("front detected");
                 // while (!mqttClient.publish(publishTopic, "front obstacle detected", 0, false)){
                 //     Serial.print('.');
-                //     delay(100);
+                //     vTaskDelay(100 / portTICK_PERIOD_MS); 
                 // }
             }
             front_obstacle = 1;
@@ -286,7 +286,7 @@ void avoidance1(void * pvParameters) {
                 Serial.println("front cleared");
                 // while (!mqttClient.publish(publishTopic, "front obstacle cleared", 0, false)){
                 //     Serial.print('.');
-                //     delay(100);
+                //     vTaskDelay(100 / portTICK_PERIOD_MS); 
                 // }
             }
             front_obstacle = 0;
@@ -307,7 +307,7 @@ void avoidance2(void * pvParameters) {
                 Serial.println("back detected");
                 // while (!mqttClient.publish(publishTopic, "back obstacle detected", 0, false)){
                 //     Serial.print('.');
-                //     delay(100);
+                //     vTaskDelay(100 / portTICK_PERIOD_MS); 
                 // }
             }
             back_obstacle = 1;
@@ -317,7 +317,7 @@ void avoidance2(void * pvParameters) {
                 Serial.println("back cleared");
                 // while (!mqttClient.publish(publishTopic, "back obstacle cleared", 0, false)){
                 //     Serial.print('.');
-                //     delay(100);
+                //     vTaskDelay(100 / portTICK_PERIOD_MS); 
                 // }
             }
             back_obstacle = 0;
