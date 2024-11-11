@@ -11,8 +11,8 @@
 #define LED5 25
 #define BUZZER 14
 #define BUZZER_CHANNEL 10
-#define AVOIDANCE1 27  // front
-#define AVOIDANCE2 26  // back
+#define AVOIDANCE1 26  // front
+#define AVOIDANCE2 27  // back
 #define MOTOR1_IN1 18
 #define MOTOR1_IN2 19
 #define MOTOR2_IN3 16
@@ -70,14 +70,14 @@ int melody_durations[] = {
 int front_alert = NOTE_G5;
 int back_alert = NOTE_E5;
 
-const char *ssid = "HUAWEI P30";
-const char *pass = "suibianxiafang123";
-char *server = "mqtt://192.168.43.15:1883";
+// const char *ssid = "HUAWEI P30";
+// const char *pass = "suibianxiafang123";
+// char *server = "mqtt://192.168.43.15:1883";
 
-char *subscribeTopic = "control";
-char *publishTopic = "obstacle";
+// char *subscribeTopic = "control";
+// char *publishTopic = "obstacle";
 
-ESP32MQTTClient mqttClient;
+// ESP32MQTTClient mqttClient;
 
 void led(void * pvParameters) {
     while (1) {
@@ -116,24 +116,14 @@ void led(void * pvParameters) {
                 vTaskDelay(300 / portTICK_PERIOD_MS);
             }
         } else if (control == 2) {  // reverse
-            digitalWrite(LED1, LOW); 
+            digitalWrite(LED1, HIGH); 
             digitalWrite(LED2, HIGH);
-            digitalWrite(LED3, HIGH);
+            digitalWrite(LED3, LOW);
             digitalWrite(LED4, HIGH);
             digitalWrite(LED5, HIGH);
             vTaskDelay(300 / portTICK_PERIOD_MS);
             if (control == 2) {
-                digitalWrite(LED2, LOW); 
-                vTaskDelay(300 / portTICK_PERIOD_MS);
-            }
-            if (control == 2) {
-                digitalWrite(LED1, HIGH); 
-                digitalWrite(LED3, LOW);
-                vTaskDelay(300 / portTICK_PERIOD_MS);
-            }
-            if (control == 2) {
-                digitalWrite(LED2, HIGH); 
-                digitalWrite(LED4, LOW);
+                digitalWrite(LED4, LOW); 
                 vTaskDelay(300 / portTICK_PERIOD_MS);
             }
             if (control == 2) {
@@ -143,9 +133,29 @@ void led(void * pvParameters) {
             }
             if (control == 2) {
                 digitalWrite(LED4, HIGH); 
+                digitalWrite(LED1, LOW);
+                vTaskDelay(300 / portTICK_PERIOD_MS);
+            }
+            if (control == 2) {
+                digitalWrite(LED5, HIGH); 
+                digitalWrite(LED2, LOW);
+                vTaskDelay(300 / portTICK_PERIOD_MS);
+            }
+            if (control == 2) {
+                digitalWrite(LED1, HIGH); 
                 vTaskDelay(300 / portTICK_PERIOD_MS);
             }
         } else if (control == 3) {  // left
+            digitalWrite(LED1, LOW); 
+            digitalWrite(LED2, LOW); 
+            digitalWrite(LED3, HIGH); 
+            digitalWrite(LED4, HIGH); 
+            digitalWrite(LED5, LOW); 
+            vTaskDelay(500 / portTICK_PERIOD_MS); 
+            digitalWrite(LED3, LOW); 
+            digitalWrite(LED4, LOW); 
+            vTaskDelay(500 / portTICK_PERIOD_MS); 
+        } else if (control == 4) {  // right
             digitalWrite(LED1, HIGH); 
             digitalWrite(LED2, HIGH); 
             digitalWrite(LED3, LOW); 
@@ -154,16 +164,6 @@ void led(void * pvParameters) {
             vTaskDelay(500 / portTICK_PERIOD_MS); 
             digitalWrite(LED1, LOW); 
             digitalWrite(LED2, LOW); 
-            vTaskDelay(500 / portTICK_PERIOD_MS); 
-        } else if (control == 4) {  // right
-            digitalWrite(LED1, LOW); 
-            digitalWrite(LED2, LOW); 
-            digitalWrite(LED3, LOW); 
-            digitalWrite(LED4, HIGH); 
-            digitalWrite(LED5, HIGH); 
-            vTaskDelay(500 / portTICK_PERIOD_MS); 
-            digitalWrite(LED4, LOW); 
-            digitalWrite(LED5, LOW); 
             vTaskDelay(500 / portTICK_PERIOD_MS); 
         } else {
             vTaskDelay(1000 / portTICK_PERIOD_MS); 
@@ -271,19 +271,21 @@ void avoidance1(void * pvParameters) {
                 control = 0;
             }
             if (front_obstacle == 0) {
-                while (!mqttClient.publish(publishTopic, "front obstacle detected", 0, false)){
-                    Serial.print('.');
-                    delay(100);
-                }
+                Serial.println("front detected");
+                // while (!mqttClient.publish(publishTopic, "front obstacle detected", 0, false)){
+                //     Serial.print('.');
+                //     delay(100);
+                // }
             }
             front_obstacle = 1;
         } else {
             front_buzz = 0;
             if (front_obstacle == 1) {
-                while (!mqttClient.publish(publishTopic, "front obstacle cleared", 0, false)){
-                    Serial.print('.');
-                    delay(100);
-                }
+                Serial.println("front cleared");
+                // while (!mqttClient.publish(publishTopic, "front obstacle cleared", 0, false)){
+                //     Serial.print('.');
+                //     delay(100);
+                // }
             }
             front_obstacle = 0;
         }
@@ -300,19 +302,21 @@ void avoidance2(void * pvParameters) {
                 control = 0;
             }
             if (back_obstacle == 0) {
-                while (!mqttClient.publish(publishTopic, "back obstacle detected", 0, false)){
-                    Serial.print('.');
-                    delay(100);
-                }
+                Serial.println("back detected");
+                // while (!mqttClient.publish(publishTopic, "back obstacle detected", 0, false)){
+                //     Serial.print('.');
+                //     delay(100);
+                // }
             }
             back_obstacle = 1;
         } else {
             back_buzz = 0;
             if (back_obstacle == 1) {
-                while (!mqttClient.publish(publishTopic, "back obstacle cleared", 0, false)){
-                    Serial.print('.');
-                    delay(100);
-                }
+                Serial.println("back cleared");
+                // while (!mqttClient.publish(publishTopic, "back obstacle cleared", 0, false)){
+                //     Serial.print('.');
+                //     delay(100);
+                // }
             }
             back_obstacle = 0;
         }
@@ -358,7 +362,7 @@ void servo(void * pvParameters) {
 void serial(void * pvParameters){
     while (1) {
         if (Serial.available() > 0) {
-            Serial.println(control); 
+            // Serial.println(control); 
             String input = Serial.readString();
             input.trim();
             Serial.print("You entered: ");
@@ -367,17 +371,21 @@ void serial(void * pvParameters){
                 control = 0;
             } else if (input == "straight") {
                 control = 1;
+                check = 10;
             } else if (input == "reverse") {
                 control = 2;
+                check = 10;
             } else if (input == "left") {
                 control = 3;
+                check = 10;
             } else if (input == "right") {
                 control = 4;
+                check = 10;
             } else if (input == "wave") {
                 wave = 1;
             } else if (input == "unwave") {
                 wave = 0;
-            } else if (input == 'music') {
+            } else if (input == "music") {
                 music = 1;
             }
             // } else if (input == "obstacle") {
@@ -385,7 +393,7 @@ void serial(void * pvParameters){
             // } else if (input == "no_obstacle") {
             //     front_obstacle = 0;
             // }
-            Serial.println("control="+control+" ; wave="+wave+" ; music="+music); 
+            Serial.println("control="+String(control)+" ; wave="+String(wave)+" ; music="+String(music)); 
         } else {
             vTaskDelay(1000 / portTICK_PERIOD_MS); 
         }
@@ -394,7 +402,7 @@ void serial(void * pvParameters){
 
 void setup() {
     Serial.begin(9600);
-    // xTaskCreate(serial, "serial", 2048, NULL, 1, NULL);
+    xTaskCreate(serial, "serial", 2048, NULL, 1, NULL);
 
     pinMode(LED1, OUTPUT);
     pinMode(LED2, OUTPUT);
@@ -427,53 +435,53 @@ void setup() {
     ledcAttachChannel(SERVO, SERVO_FREQ, SERVO_RESOLUTION, SERVO_CHANNEL);
     xTaskCreate(servo, "servo", 2048, NULL, 1, NULL);
 
-    mqttClient.enableDebuggingMessages();
-    mqttClient.setURI(server);
-    mqttClient.enableLastWillMessage("lwt", "I am going offline");
-    mqttClient.setKeepAlive(30);
-    WiFi.begin(ssid, pass);
-    WiFi.setHostname("c3test");
-    mqttClient.loopStart();
-    while (WiFi.status() != WL_CONNECTED) {
-        Serial.print('.');
-        delay(1000);
-    }
+    // mqttClient.enableDebuggingMessages();
+    // mqttClient.setURI(server);
+    // mqttClient.enableLastWillMessage("lwt", "I am going offline");
+    // mqttClient.setKeepAlive(30);
+    // WiFi.begin(ssid, pass);
+    // WiFi.setHostname("c3test");
+    // mqttClient.loopStart();
+    // while (WiFi.status() != WL_CONNECTED) {
+    //     Serial.print('.');
+    //     delay(1000);
+    // }
 }
 
 void loop() {
 }
 
-void onMqttConnect(esp_mqtt_client_handle_t client) {
-    if (mqttClient.isMyTurn(client))  // can be omitted if only one client
-    {
-        mqttClient.subscribe(subscribeTopic, [&](const String &payload) {
-            Serial.println(String(subscribeTopic) + String(": ") + String(payload.c_str()));
-            if (payload == "stop") {
-                control = 0;
-            } else if (payload == "straight") {
-                control = 1;
-                check = 10;
-            } else if (payload == "reverse") {
-                control = 2;
-                check = 10;
-            } else if (payload == "left") {
-                control = 3;
-                check = 10;
-            } else if (payload == "right") {
-                control = 4;
-                check = 10;
-            } else if (payload == "wave") {
-                wave = 1;
-            } else if (payload == "unwave") {
-                wave = 0;
-            } else if (payload == "music") {
-                music = 1;
-            }
-        });
-    }
-}
+// void onMqttConnect(esp_mqtt_client_handle_t client) {
+//     if (mqttClient.isMyTurn(client))  // can be omitted if only one client
+//     {
+//         mqttClient.subscribe(subscribeTopic, [&](const String &payload) {
+//             Serial.println(String(subscribeTopic) + String(": ") + String(payload.c_str()));
+//             if (payload == "stop") {
+//                 control = 0;
+//             } else if (payload == "straight") {
+//                 control = 1;
+//                 check = 10;
+//             } else if (payload == "reverse") {
+//                 control = 2;
+//                 check = 10;
+//             } else if (payload == "left") {
+//                 control = 3;
+//                 check = 10;
+//             } else if (payload == "right") {
+//                 control = 4;
+//                 check = 10;
+//             } else if (payload == "wave") {
+//                 wave = 1;
+//             } else if (payload == "unwave") {
+//                 wave = 0;
+//             } else if (payload == "music") {
+//                 music = 1;
+//             }
+//         });
+//     }
+// }
 
-void handleMQTT(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data) {
-    auto *event = static_cast<esp_mqtt_event_handle_t>(event_data);
-    mqttClient.onEventCallback(event);
-}
+// void handleMQTT(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data) {
+//     auto *event = static_cast<esp_mqtt_event_handle_t>(event_data);
+//     mqttClient.onEventCallback(event);
+// }
