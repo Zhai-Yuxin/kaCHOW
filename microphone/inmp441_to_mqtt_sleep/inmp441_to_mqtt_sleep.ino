@@ -17,20 +17,20 @@
 #define FLASH_RECORD_SIZE (I2S_CHANNEL_NUM * I2S_SAMPLE_RATE * I2S_SAMPLE_BITS / 8 * RECORD_TIME)
 
 #define uS_TO_S_FACTOR 1000000ULL /* Conversion factor for micro seconds to seconds */
-#define TIME_TO_SLEEP  20
+#define TIME_TO_SLEEP  30
 
 #define LEDPIN 13
-#define SOUNDPIN GPIO_NUM_35 // for KY-038
+#define SOUNDPIN GPIO_NUM_4 // for KY-038
 
 RTC_DATA_ATTR int bootCount = 0;
 
-const char* ssid = "S22";
-const char* password = "123456789";
+const char* ssid = "JQ"; // Change this 
+const char* password = "sybellaaa"; // Change this
 
 WiFiClient espClient;
 PubSubClient client(espClient);
   
-const char* mqtt_server = "192.168.87.196";
+const char* mqtt_server = "172.20.10.8"; // Change this
 const char* mqtt_topic = "voice/wav";
 
 File file;
@@ -65,7 +65,9 @@ void setup() {
   i2s_adc();
 
   // Connect to wifi
-  setup_wifi();
+  if (WiFi.status() != WL_CONNECTED) {
+    setup_wifi();
+  }
 
   // Connect to MQTT Server
   connect_mqtt();
@@ -81,7 +83,7 @@ void setup() {
   Serial.println("Setup ESP32 to sleep for every " + String(TIME_TO_SLEEP) + " Seconds");
 
   // Wake up by touch
-  touchAttachInterrupt(T5, touch_isr_handler, 50);
+  touchAttachInterrupt(T3, touch_isr_handler, 50);
   esp_sleep_enable_touchpad_wakeup();
 
   // Wake up by sound
@@ -96,15 +98,23 @@ void loop() {
 }
 
 void setup_wifi() {
-  delay(10);
+  WiFi.mode(WIFI_STA);
+
   Serial.println();
   Serial.print("Connecting to Wifi: ");
   Serial.println(ssid);
 
+  int connectTries = 0;
+
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
+    connectTries++;
     delay(500);
     Serial.print(".");
+    if (connectTries == 60) {
+      Serial.println("Wifi connection failed, rebooting...");
+      ESP.restart();
+    }
   }
 
   Serial.println("");
@@ -286,7 +296,9 @@ void send_wav_to_mqtt() {
 
   size_t fileSize = file.size();
   Serial.println(fileSize);
-  const size_t chunkSize = 128;  // Adjust chunk size if needed
+  
+  // Chunk size
+  const size_t chunkSize = 64;
   size_t bytesRead;
   byte buffer[chunkSize];
   Serial.println("Sending chunks over");
