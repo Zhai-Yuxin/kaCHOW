@@ -21,12 +21,8 @@ np.random.seed(seed)
 # Set dataset path to for preprocessing and feeding into the model 
 data_dir = pathlib.Path(DATASET_PATH)
 
-# List files for each command
-commands = np.array(tf.io.gfile.listdir(str(data_dir)))
-commands = commands[(commands != 'README.md') & (commands != '.DS_Store')]
-
 # Load the data. Audio files are mostly 16 kHz. 
-# Padded shorter files and trimemed longer files to 1 seconds for easier batching  
+# Padded shorter files and trimmed longer files to 1 seconds for easier batching  
 train_ds, val_ds = tf.keras.utils.audio_dataset_from_directory(
     directory=data_dir,
     batch_size=16,
@@ -119,10 +115,8 @@ input_shape = example_spectrograms.shape[1:]
 print('Input shape:', input_shape)
 num_labels = len(label_names)
 
-# Instantiate the `tf.keras.layers.Normalization` layer.
+# Normalisation
 norm_layer = layers.Normalization()
-# Fit the state of the layer to the spectrograms
-# with `Normalization.adapt`.
 norm_layer.adapt(data=train_spectrogram_ds.map(map_func=lambda spec, label: spec))
 
 model = models.Sequential([
@@ -196,7 +190,7 @@ evaluation = model.evaluate(test_spectrogram_ds, return_dict=True)
 print(f"Accuracy: {evaluation['accuracy']}, Loss: {evaluation['loss']}")
 
 # Save model
-model.save('emo_model_with_silence.keras')
+model.save('emo_model.keras')
 
 # Test on a sample audio
 def test_sample():
