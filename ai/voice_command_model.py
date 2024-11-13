@@ -25,10 +25,6 @@ train_data_dir = pathlib.Path(TRAINING_DATASET_PATH)
 val_data_dir = pathlib.Path(VALIDATION_DATASET_PATH)
 test_data_dir = pathlib.Path(TESTING_DATASET_PATH)
 
-# List files for each command
-commands = np.array(tf.io.gfile.listdir(str(train_data_dir)))
-commands = commands[(commands != 'README.md') & (commands != '.DS_Store')]
-
 # Load the data. Audio files are mostly 16 kHz. 
 # Padded shorter files and trimemed longer files to 1 seconds for easier batching  
 train_ds = tf.keras.utils.audio_dataset_from_directory(
