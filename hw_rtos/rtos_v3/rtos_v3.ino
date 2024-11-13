@@ -43,6 +43,7 @@ volatile bool wave = 0;
 volatile int check = 10;
 
 LiquidCrystal_I2C lcd(0x27,16,2);
+volatile int latest_command = 0;
 
 WiFiClientSecure espClient = WiFiClientSecure();
 PubSubClient client(espClient);
@@ -354,15 +355,15 @@ void display(void * pvParameters) {
         lcd.setCursor(0, 0);
         lcd.print("Detected:");
         lcd.setCursor(0,1);
-        if (control == 0) {
+        if (latest_command == 0) {
             lcd.print("stop");
-        } else if (control == 1) {
+        } else if (latest_command == 1) {
             lcd.print("straight");
-        } else if (control == 2) {
+        } else if (latest_command == 2) {
             lcd.print("reverse");
-        } else if (control == 3) {
+        } else if (latest_command == 3) {
             lcd.print("left");
-        } else if (control == 4) {
+        } else if (latest_command == 4) {
             lcd.print("right");
         }
         vTaskDelay(1000 / portTICK_PERIOD_MS); 
@@ -514,18 +515,23 @@ void commandCallback(char* topic, byte* payload, unsigned int length) {
        
   if (message == "stop") {
       control = 0;
+      latest_command = 0;
   } else if (message == "straight") {
       control = 1;
       check = 10;
+      latest_command = 1;
   } else if (message == "reverse") {
       control = 2;
       check = 10;
+      latest_command = 2;
   } else if (message == "left") {
       control = 3;
       check = 10;
+      latest_command = 3;
   } else if (message == "right") {
       control = 4;
       check = 10;
+      latest_command = 4;
   } else if (message == "wave") {
       wave = 1;
       start_time = millis();
