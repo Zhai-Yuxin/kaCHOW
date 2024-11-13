@@ -37,6 +37,7 @@ train_ds = tf.keras.utils.audio_dataset_from_directory(
     seed=0,
     output_sequence_length=16000)
 
+# Validation split taken from "validation_list"
 val_ds = tf.keras.utils.audio_dataset_from_directory(
     directory=val_data_dir,
     batch_size=64,
@@ -127,10 +128,8 @@ input_shape = example_spectrograms.shape[1:]
 print('Input shape:', input_shape)
 num_labels = len(label_names)
 
-# Instantiate the `tf.keras.layers.Normalization` layer.
+# Normalisation
 norm_layer = layers.Normalization()
-# Fit the state of the layer to the spectrograms
-# with `Normalization.adapt`.
 norm_layer.adapt(data=train_spectrogram_ds.map(map_func=lambda spec, label: spec))
 
 model = models.Sequential([
@@ -181,7 +180,7 @@ def accuracies():
     plt.ylim([0, 100])
     plt.xlabel('Epoch')
     plt.ylabel('Accuracy [%]')
-    # plt.savefig('graphs/voice_command/acc.png')
+    plt.savefig('graphs/voice_command/acc.png')
 
 # Plot confusion matrix
 def confusion_matrix():
@@ -204,7 +203,7 @@ evaluation = model.evaluate(test_spectrogram_ds, return_dict=True)
 print(f"Accuracy: {evaluation['accuracy']}, Loss: {evaluation['loss']}")
 
 # Save model
-model.save('voice_command_model_with_silence_and_bg.keras')
+model.save('voice_command_model.keras')
 
 # Test on a sample audio
 def test_sample():
