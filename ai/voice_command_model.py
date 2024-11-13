@@ -26,7 +26,7 @@ val_data_dir = pathlib.Path(VALIDATION_DATASET_PATH)
 test_data_dir = pathlib.Path(TESTING_DATASET_PATH)
 
 # Load the data. Audio files are mostly 16 kHz. 
-# Padded shorter files and trimemed longer files to 1 seconds for easier batching  
+# Padded shorter files and trimmed longer files to 1 seconds for easier batching  
 train_ds = tf.keras.utils.audio_dataset_from_directory(
     directory=train_data_dir,
     batch_size=64,
