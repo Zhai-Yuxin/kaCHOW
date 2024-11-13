@@ -16,8 +16,8 @@ DATASET_PATH = 'Sounds'
 voice_command_classes = ('backward', 'go', 'left', 'right', 'silence', 'stop', 'unknown')
 emo_classes = ('cry', 'silence')
 
-voice_command_model = load_model('voice_command_model_with_silence_and_bg.keras')
-emo_model = load_model('emo_model_with_silence.keras')
+voice_command_model = load_model('voice_command_model.keras')
+emo_model = load_model('emo_model.keras')
 
 dynamodb = boto3.resource('dynamodb') 
 table = dynamodb.Table('kachow_test') 
@@ -76,6 +76,7 @@ def voice_command_process():
     save_wav_file('Sounds/recording.wav', audio_data)
     print("saved .wav file")
 
+    # Obtain date and timestamp
     utc_now = datetime.utcnow()
     gmt_plus_8 = utc_now + timedelta(hours=8)
     timestamp = gmt_plus_8.strftime('%Y-%m-%d/%H:%M:%S')
@@ -96,6 +97,8 @@ def voice_command_process():
         predicted_label_index = np.argmax(predictions[0])
         predicted_label = voice_command_classes[predicted_label_index]
         print(f'Predicted label: {predicted_label}')
+
+        # Send predicted label to DynamoDB 
         upload_to_dynamodb(predicted_label)
 
     audio_data.clear()
