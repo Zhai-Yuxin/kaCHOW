@@ -1,1 +1,3 @@
 # kaCHOW
+
+Robotic toys advancements today feature remote controls or app-based interfaces. We are aiming to create a voice-controlled robotic car where younger children can enjoy playing while developing their language skills. Our toy can help in developing speech, language, and cognitive skills by encouraging children to form and execute commands. By making the learning process fun and safe, the robotic car will also detect the mode of the children via sounds, such as crying and send an alert to the parents. 
